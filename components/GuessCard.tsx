@@ -1,0 +1,136 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { getProximityColor, getProximityBorderColor, type GuessResult } from '@/lib/game-logic'
+import { cn } from '@/lib/utils'
+
+interface GuessCardProps {
+  result: GuessResult
+  isNew?: boolean
+}
+
+export default function GuessCard({ result, isNew = false }: GuessCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const { country, distance, direction, proximityPct, isCorrect } = result
+
+  const bgColor = getProximityColor(proximityPct)
+  const borderColor = getProximityBorderColor(proximityPct)
+  const isFar = proximityPct < 20 && !isCorrect
+
+  useEffect(() => {
+    if (!isNew || !cardRef.current) return
+    const el = cardRef.current
+    el.style.opacity = '0'
+    el.style.transform = 'translateY(12px)'
+    requestAnimationFrame(() => {
+      el.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out'
+      el.style.opacity = '1'
+      el.style.transform = 'translateY(0)'
+    })
+
+    if (isFar) {
+      setTimeout(() => {
+        el.style.transition = 'transform 50ms ease-in-out'
+        const shake = ['-4px', '4px', '-3px', '3px', '-1px', '0']
+        shake.forEach((val, i) => {
+          setTimeout(() => {
+            if (el) el.style.transform = `translateX(${val})`
+          }, i * 50)
+        })
+      }, 320)
+    }
+  }, [isNew, isFar])
+
+  return (
+    <div
+      ref={cardRef}
+      role="listitem"
+      className="relative overflow-hidden"
+      style={{
+        height: 68,
+        borderRadius: 12,
+        border: `1px solid ${borderColor}`,
+        background: bgColor,
+        padding: '10px 14px',
+        boxShadow: isCorrect ? `0 0 16px ${borderColor}60` : undefined,
+      }}
+    >
+      {/* Green glow border animation on correct */}
+      {isCorrect && (
+        <div
+          className="absolute inset-0 rounded-xl pointer-events-none"
+          style={{
+            boxShadow: `inset 0 0 0 1px #4CAF5080`,
+            animation: 'pulse-glow 2s ease-in-out infinite',
+          }}
+        />
+      )}
+
+      <div className="flex items-center gap-3 h-full">
+        {/* Flag + Name */}
+        <div className="flex flex-col justify-center min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl leading-none" aria-hidden="true">{country.flag}</span>
+            <span className="font-bold text-sm text-foreground truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {country.name}
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground truncate mt-0.5">{country.continent}</span>
+        </div>
+
+        {/* Distance + Proximity bar */}
+        <div className="flex flex-col items-center gap-1 min-w-[90px]">
+          <span
+            className="text-sm font-bold text-foreground tabular-nums"
+            style={{ fontFamily: 'JetBrains Mono, monospace' }}
+          >
+            {distance.toLocaleString('es-ES')} km
+          </span>
+          {/* Proximity bar */}
+          <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${proximityPct}%`,
+                background: 'linear-gradient(to right, #1E6091, #C9A84C, #FF6B35, #4CAF50)',
+                backgroundSize: '400%',
+                backgroundPosition: `${100 - proximityPct}% center`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Direction or Correct indicator */}
+        <div className="flex flex-col items-center justify-center min-w-[40px]">
+          {isCorrect ? (
+            <>
+              <span className="text-2xl leading-none" aria-label="Correcto">🎉</span>
+              <span
+                className="text-xs font-bold mt-0.5"
+                style={{ color: '#4CAF50', fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                Correcto!
+              </span>
+            </>
+          ) : (
+            <>
+              <span
+                className="text-xl leading-none font-bold"
+                style={{ color: '#00D4FF' }}
+                aria-label={`Dirección: ${direction.label}`}
+              >
+                {direction.arrow}
+              </span>
+              <span
+                className="text-xs text-muted-foreground mt-0.5"
+                style={{ fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                {direction.label}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

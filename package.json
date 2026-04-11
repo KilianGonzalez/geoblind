@@ -46,6 +46,7 @@
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
     "lucide-react": "^0.564.0",
+    "globe.gl": "^2.35.2",
     "next": "16.2.0",
     "react": "^19",
     "react-day-picker": "9.13.2",

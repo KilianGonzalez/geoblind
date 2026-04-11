@@ -1,192 +1,347 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Globe, ArrowLeft, Settings, Share2, RotateCcw } from 'lucide-react'
-import GameBoard from '@/components/GameBoard'
-import GuessInput from '@/components/GuessInput'
-import HintDisplay from '@/components/HintDisplay'
-import GameStats from '@/components/GameStats'
-import GameModal from '@/components/GameModal'
-import { getCountryOfDay, getHints, checkGuess } from '@/lib/game-logic'
-import type { GameState, Hint } from '@/lib/types'
+import { Globe, Search, Flag } from 'lucide-react'
+import { useGameState } from '@/hooks/use-game-state'
+import GuessCard from '@/components/GuessCard'
+import GlobeDynamic from '@/components/globe-dynamic'
+
+const DAY_NUMBER = 47
+
+const MODE_LABELS: Record<string, string> = {
+  diario: 'MODO DIARIO',
+  infinito: 'MODO INFINITO',
+  region: 'MODO REGIÓN',
+  contrarreloj: 'CONTRARRELOJ',
+  dificil: 'MODO DIFÍCIL',
+}
 
 export default function GamePage() {
-  const [gameState, setGameState] = useState<GameState>({
-    secretCountry: null,
-    guesses: [],
-    hints: [],
-    gameOver: false,
-    won: false,
-    attempts: 0,
-  })
+  const { state, submitGuess, updateSearch, navigateResults, clearSearch, giveUp } = useGameState()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [showConfirmGiveUp, setShowConfirmGiveUp] = useState(false)
+  const [newGuessIndex, setNewGuessIndex] = useState<number | null>(null)
 
-  const [showSettings, setShowSettings] = useState(false)
-  const [showWinModal, setShowWinModal] = useState(false)
-  const [showLoseModal, setShowLoseModal] = useState(false)
+  const handleSubmit = useCallback((name: string) => {
+    if (!name.trim() || state.gameStatus !== 'playing') return
+    const prevLen = state.guesses.length
+    submitGuess(name)
+    setNewGuessIndex(prevLen)
+    clearSearch()
+    if (inputRef.current) inputRef.current.value = ''
+  }, [state.gameStatus, state.guesses.length, submitGuess, clearSearch])
 
-  // Initialize game on mount
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); navigateResults('down') }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); navigateResults('up') }
+    else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (state.selectedIndex >= 0 && state.searchResults[state.selectedIndex]) {
+        handleSubmit(state.searchResults[state.selectedIndex].name)
+      } else if (state.searchQuery.trim()) {
+        handleSubmit(state.searchQuery.trim())
+      }
+    } else if (e.key === 'Escape') {
+      clearSearch()
+    }
+  }, [state.selectedIndex, state.searchResults, state.searchQuery, navigateResults, handleSubmit, clearSearch])
+
+  // Focus input on mount
   useEffect(() => {
-    const country = getCountryOfDay()
-    const hints = getHints(country)
-    
-    setGameState(prev => ({
-      ...prev,
-      secretCountry: country,
-      hints: hints,
-    }))
+    inputRef.current?.focus()
   }, [])
 
-  const handleGuess = (countryName: string) => {
-    if (gameState.gameOver || !gameState.secretCountry) return
-
-    const isCorrect = checkGuess(countryName, gameState.secretCountry)
-    const newAttempts = gameState.attempts + 1
-
-    if (isCorrect) {
-      setGameState(prev => ({
-        ...prev,
-        guesses: [...prev.guesses, countryName],
-        gameOver: true,
-        won: true,
-        attempts: newAttempts,
-      }))
-      setShowWinModal(true)
-    } else {
-      if (newAttempts >= 6) {
-        setGameState(prev => ({
-          ...prev,
-          guesses: [...prev.guesses, countryName],
-          gameOver: true,
-          won: false,
-          attempts: newAttempts,
-        }))
-        setShowLoseModal(true)
-      } else {
-        setGameState(prev => ({
-          ...prev,
-          guesses: [...prev.guesses, countryName],
-          attempts: newAttempts,
-        }))
-      }
-    }
-  }
-
-  const handleReset = () => {
-    const country = getCountryOfDay()
-    const hints = getHints(country)
-    
-    setGameState({
-      secretCountry: country,
-      guesses: [],
-      hints: hints,
-      gameOver: false,
-      won: false,
-      attempts: 0,
-    })
-    setShowWinModal(false)
-    setShowLoseModal(false)
-  }
+  const attemptsLeft = state.maxAttempts - state.attemptsUsed
+  const isPlaying = state.gameStatus === 'playing'
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background via-card to-background">
-      {/* Header */}
-      <header className="border-b border-border/40 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Inicio</span>
-          </Link>
-          
-          <div className="flex items-center gap-2">
-            <Globe className="w-6 h-6 text-primary" />
-            <span className="font-bold text-lg">GeoBlind</span>
-          </div>
+    <div className="flex flex-col" style={{ height: '100dvh', background: '#0A0E1A' }}>
+      {/* ── Navbar ─────────────────────────────────────────────── */}
+      <header
+        className="flex items-center justify-between flex-shrink-0 px-5"
+        style={{
+          height: 56,
+          borderBottom: '1px solid rgba(27,58,75,0.7)',
+          background: 'rgba(13,27,42,0.95)',
+          backdropFilter: 'blur(12px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
+          <Globe className="w-6 h-6 text-primary" />
+          <span className="font-bold text-base text-foreground">GeoBlind</span>
+        </Link>
 
-          <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-card transition-colors">
-              <Share2 className="w-5 h-5 text-foreground/70" />
-            </button>
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 rounded-lg hover:bg-card transition-colors"
+        {/* Mode tabs */}
+        <nav className="hidden md:flex items-center gap-1" aria-label="Modos de juego">
+          {[
+            { id: 'diario',       label: 'Diario',        color: '#00D4FF' },
+            { id: 'infinito',     label: 'Infinito',      color: '#A855F7' },
+            { id: 'region',       label: 'Región',        color: '#22C55E' },
+            { id: 'contrarreloj', label: 'Contrarreloj',  color: '#F59E0B' },
+            { id: 'dificil',      label: 'Difícil',       color: '#EF4444' },
+          ].map(m => (
+            <button
+              key={m.id}
+              className="px-4 py-1.5 rounded-full text-sm font-semibold transition-all"
+              style={{
+                background: state.mode === m.id ? m.color : 'transparent',
+                color: state.mode === m.id ? '#0A0E1A' : '#8BA4B0',
+                border: `1px solid ${state.mode === m.id ? m.color : 'transparent'}`,
+              }}
+              aria-current={state.mode === m.id ? 'page' : undefined}
             >
-              <Settings className="w-5 h-5 text-foreground/70" />
+              {m.label}
             </button>
-          </div>
+          ))}
+        </nav>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-3">
+          <button className="text-muted-foreground hover:text-foreground transition-colors" title="Idioma">
+            <span className="text-lg">🌐</span>
+          </button>
+          <span className="text-sm font-semibold text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>ES</span>
         </div>
       </header>
 
-      {/* Main Game Area */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Game Board */}
-          <div className="lg:col-span-2 space-y-8">
-            <GameBoard guesses={gameState.guesses} secretCountry={gameState.secretCountry} />
-            
-            {/* Hints Display */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Pistas Disponibles</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {gameState.hints.map((hint, index) => (
-                  <HintDisplay key={index} hint={hint} index={index} />
-                ))}
+      {/* ── Main Two-Column Layout ──────────────────────────────── */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+
+        {/* ── LEFT PANEL ──────────────────────────────────────────── */}
+        <div
+          className="flex flex-col flex-shrink-0 overflow-y-auto w-full lg:w-[40%]"
+          style={{ maxHeight: 'calc(100dvh - 56px)' }}
+        >
+          <div
+            className="flex flex-col gap-4 p-5"
+            style={{ minHeight: '100%' }}
+          >
+            {/* Mode badge + day */}
+            <div className="flex items-center gap-2">
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold tracking-widest"
+                style={{
+                  background: 'rgba(0,212,255,0.12)',
+                  border: '1px solid rgba(0,212,255,0.4)',
+                  color: '#00D4FF',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              >
+                {MODE_LABELS[state.mode]} &middot; Día {DAY_NUMBER}
+              </span>
+            </div>
+
+            {/* Attempt dots */}
+            <div
+              className="flex flex-col gap-2 p-4 rounded-xl"
+              style={{ background: '#0D1B2A', border: '1px solid rgba(27,58,75,0.8)' }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-foreground">
+                  Intento {state.attemptsUsed} / {state.maxAttempts}
+                </span>
+                <span className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                  {attemptsLeft} restantes
+                </span>
+              </div>
+              <div className="flex gap-2 mt-1" role="list" aria-label="Intentos usados">
+                {Array.from({ length: state.maxAttempts }).map((_, i) => {
+                  const used = i < state.attemptsUsed
+                  const current = i === state.attemptsUsed && isPlaying
+                  return (
+                    <div
+                      key={i}
+                      role="listitem"
+                      aria-label={used ? 'Intento usado' : current ? 'Intento actual' : 'Intento disponible'}
+                      className="flex-1 h-1.5 rounded-full"
+                      style={{
+                        background: used ? '#00D4FF' : 'rgba(27,58,75,0.8)',
+                        border: current ? '1px solid #00D4FF' : 'none',
+                        animation: current ? 'pulse-glow 1.5s ease-in-out infinite' : undefined,
+                      }}
+                    />
+                  )
+                })}
               </div>
             </div>
 
-            {/* Input Section */}
-            {!gameState.gameOver && (
-              <GuessInput 
-                onGuess={handleGuess}
-                disabled={gameState.gameOver}
-              />
+            {/* Search input */}
+            <div className="relative" role="search">
+              <label htmlFor="country-search" className="sr-only">
+                ¿Cuál es el país misterioso?
+              </label>
+              <div className="relative flex items-center">
+                <Search
+                  className="absolute left-4 w-5 h-5 pointer-events-none"
+                  style={{ color: '#00D4FF' }}
+                  aria-hidden="true"
+                />
+                <input
+                  id="country-search"
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Escribe un país..."
+                  disabled={!isPlaying}
+                  autoComplete="off"
+                  value={state.searchQuery}
+                  onChange={e => updateSearch(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-12 pr-10 text-foreground placeholder-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+                  style={{
+                    height: 52,
+                    background: '#0D1B2A',
+                    border: '1px solid',
+                    borderColor: state.searchQuery ? '#00D4FF' : 'rgba(27,58,75,0.8)',
+                    borderRadius: 12,
+                    fontSize: 15,
+                    boxShadow: state.searchQuery ? '0 0 0 3px rgba(0,212,255,0.15)' : undefined,
+                    fontFamily: 'Inter, sans-serif',
+                    transition: 'border-color 200ms, box-shadow 200ms',
+                  }}
+                />
+                <span
+                  className="absolute right-4 text-xs text-muted-foreground pointer-events-none select-none"
+                  style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                  aria-hidden="true"
+                >
+                  ↵
+                </span>
+              </div>
+
+              {/* Autocomplete dropdown */}
+              {state.searchResults.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 mt-2 overflow-hidden z-30"
+                  style={{
+                    background: '#0D1B2A',
+                    border: '1px solid rgba(27,58,75,0.9)',
+                    borderRadius: 12,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                  }}
+                  role="listbox"
+                  aria-label="Sugerencias de países"
+                >
+                  {state.searchResults.map((c, i) => (
+                    <button
+                      key={c.name}
+                      role="option"
+                      aria-selected={i === state.selectedIndex}
+                      onMouseDown={() => handleSubmit(c.name)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                      style={{
+                        background: i === state.selectedIndex ? 'rgba(0,212,255,0.15)' : 'transparent',
+                        borderBottom: i < state.searchResults.length - 1 ? '1px solid rgba(27,58,75,0.4)' : 'none',
+                      }}
+                    >
+                      <span className="text-xl leading-none" aria-hidden="true">{c.flag}</span>
+                      <span className="font-semibold text-sm text-foreground flex-1">{c.name}</span>
+                      <span className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        {c.continent}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Guess history */}
+            <div className="flex flex-col gap-2 flex-1" role="list" aria-label="Historial de intentos">
+              {state.guesses.length === 0 && (
+                <div className="flex flex-col items-center justify-center flex-1 py-10 text-center gap-2">
+                  <p className="text-foreground/60 text-sm">Empieza escribiendo un país arriba</p>
+                  <p className="text-muted-foreground text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                    Te daremos pistas de distancia y dirección
+                  </p>
+                </div>
+              )}
+              {state.guesses.map((g, i) => (
+                <GuessCard
+                  key={g.country.name}
+                  result={g}
+                  isNew={i === newGuessIndex}
+                />
+              ))}
+            </div>
+
+            {/* Status message when game ends */}
+            {state.gameStatus !== 'playing' && (
+              <div
+                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center"
+                style={{
+                  background: state.gameStatus === 'won' ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)',
+                  border: `1px solid ${state.gameStatus === 'won' ? '#4CAF5040' : '#F4433640'}`,
+                }}
+              >
+                <p className="font-bold text-foreground">
+                  {state.gameStatus === 'won'
+                    ? `Correcto en ${state.attemptsUsed} intento${state.attemptsUsed !== 1 ? 's' : ''}!`
+                    : `El país era ${state.targetCountry.flag} ${state.targetCountry.name}`}
+                </p>
+                <p className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                  Siguiente reto en 24 horas
+                </p>
+              </div>
             )}
 
-            {gameState.gameOver && (
-              <div className="text-center space-y-4 p-8 rounded-xl border border-border/40 bg-card/50">
-                <p className="text-foreground/70">
-                  {gameState.won 
-                    ? `¡Correcto! El país era ${gameState.secretCountry}` 
-                    : `Game Over. El país era ${gameState.secretCountry}`}
-                </p>
-                <button
-                  onClick={handleReset}
-                  className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Jugar de Nuevo
-                </button>
+            {/* Give up button */}
+            {isPlaying && (
+              <div className="flex justify-center pt-1">
+                {!showConfirmGiveUp ? (
+                  <button
+                    onClick={() => setShowConfirmGiveUp(true)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/60 transition-colors"
+                    style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                  >
+                    <Flag className="w-3.5 h-3.5" />
+                    Rendirse
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                      ¿Seguro?
+                    </span>
+                    <button
+                      onClick={() => { giveUp(); setShowConfirmGiveUp(false) }}
+                      className="text-xs font-bold transition-colors"
+                      style={{ color: '#F44336', fontFamily: 'JetBrains Mono, monospace' }}
+                    >
+                      Sí, rendirse
+                    </button>
+                    <button
+                      onClick={() => setShowConfirmGiveUp(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Right Column - Stats */}
-          <div>
-            <GameStats attempts={gameState.attempts} guesses={gameState.guesses} />
+        {/* ── RIGHT PANEL — Globe ──────────────────────────────────── */}
+        <div
+          className="relative flex-1 min-h-0"
+          style={{
+            minHeight: 280,
+            borderTop: '1px solid rgba(27,58,75,0.6)',
+          }}
+        >
+          <div className="lg:hidden" style={{ height: 280 }}>
+            <GlobeDynamic guesses={state.guesses} />
+          </div>
+          <div className="hidden lg:block" style={{ height: 'calc(100dvh - 56px)', borderLeft: '1px solid rgba(27,58,75,0.6)', borderTop: 'none' }}>
+            <GlobeDynamic guesses={state.guesses} />
           </div>
         </div>
       </div>
-
-      {/* Modals */}
-      {showWinModal && (
-        <GameModal
-          type="win"
-          country={gameState.secretCountry || ''}
-          attempts={gameState.attempts}
-          onClose={() => setShowWinModal(false)}
-          onPlayAgain={handleReset}
-        />
-      )}
-
-      {showLoseModal && (
-        <GameModal
-          type="lose"
-          country={gameState.secretCountry || ''}
-          attempts={gameState.attempts}
-          onClose={() => setShowLoseModal(false)}
-          onPlayAgain={handleReset}
-        />
-      )}
-    </main>
+    </div>
   )
 }
