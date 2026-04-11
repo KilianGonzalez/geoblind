@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* GeoBlind Color System - Dark Mode (default) */
+  --color-space: #0A0E1A;
+  --color-midnight: #0D1B2A;
+  --color-ocean: #1B3A4B;
+  --color-earth-teal: #2D6A4F;
+  --color-atmosphere: #1E6091;
+  --color-sand: #C9A84C;
+  --color-arctic: #E8F4F8;
+  --color-accent: #00D4FF;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-error: #F44336;
+  
+  --background: #0A0E1A;
+  --foreground: #E8F4F8;
+  --card: #0D1B2A;
+  --card-foreground: #E8F4F8;
+  --popover: #0D1B2A;
+  --popover-foreground: #E8F4F8;
+  --primary: #00D4FF;
+  --primary-foreground: #0A0E1A;
+  --secondary: #1B3A4B;
+  --secondary-foreground: #E8F4F8;
+  --muted: #1B3A4B;
+  --muted-foreground: #8BA4B0;
+  --accent: #00D4FF;
+  --accent-foreground: #0A0E1A;
+  --destructive: #F44336;
+  --destructive-foreground: #E8F4F8;
+  --border: #1B3A4B;
+  --input: #0D1B2A;
+  --ring: #00D4FF;
+  --radius: 0.75rem;
+}
+
+.light {
+  --color-space: #0A0E1A;
+  --color-midnight: #0D1B2A;
+  --color-ocean: #1B3A4B;
+  --color-earth-teal: #2D6A4F;
+  --color-atmosphere: #1E6091;
+  --color-sand: #C9A84C;
+  --color-arctic: #E8F4F8;
+  --color-accent: #00D4FF;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-error: #F44336;
+  
+  --background: #F0F4F8;
+  --foreground: #0A0E1A;
+  --card: #FFFFFF;
+  --card-foreground: #0A0E1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A0E1A;
+  --primary: #00D4FF;
+  --primary-foreground: #0A0E1A;
+  --secondary: #E8F4F8;
+  --secondary-foreground: #0A0E1A;
+  --muted: #C9D4DC;
+  --muted-foreground: #5A6B76;
+  --accent: #00D4FF;
+  --accent-foreground: #0A0E1A;
+  --destructive: #F44336;
+  --destructive-foreground: #FFFFFF;
+  --border: #D4DFE6;
+  --input: #FFFFFF;
+  --ring: #00D4FF;
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Helvetica', 'Arial';
+  --font-mono: 'JetBrains Mono', 'Courier New';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Animations respecting prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Pulsing animation for globe */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth underline transition */
+@keyframes slide-underline {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
