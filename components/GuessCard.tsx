@@ -1,8 +1,24 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { getProximityColor, getProximityBorderColor, type GuessResult } from '@/lib/game-logic'
-import { cn } from '@/lib/utils'
+import type { GuessResult } from '@/lib/game-logic'
+
+
+function proximityBg(pct: number): string {
+  if (pct >= 100) return 'rgba(76, 175, 80, 0.5)'
+  if (pct >= 81)  return 'rgba(255, 107, 53, 0.4)'
+  if (pct >= 51)  return 'rgba(201, 168, 76, 0.3)'
+  if (pct >= 21)  return 'rgba(45, 106, 79, 0.5)'
+  return 'rgba(27, 58, 75, 0.8)'
+}
+
+function proximityBorder(pct: number): string {
+  if (pct >= 100) return '#4CAF50'
+  if (pct >= 81)  return '#FF6B35'
+  if (pct >= 51)  return '#C9A84C'
+  if (pct >= 21)  return '#2D6A4F'
+  return '#1B3A4B'
+}
 
 interface GuessCardProps {
   result: GuessResult
@@ -13,8 +29,8 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const { country, distance, direction, proximityPct, isCorrect } = result
 
-  const bgColor = getProximityColor(proximityPct)
-  const borderColor = getProximityBorderColor(proximityPct)
+  const bgColor = proximityBg(proximityPct)
+  const borderColor = proximityBorder(proximityPct)
   const isFar = proximityPct < 20 && !isCorrect
 
   useEffect(() => {

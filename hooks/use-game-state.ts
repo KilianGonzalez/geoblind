@@ -24,23 +24,15 @@ export interface GameState {
   selectedIndex: number
 }
 
-// Pre-seeded mock guesses to display the 3 example cards
-function getMockGuesses(target: CountryData): GuessResult[] {
-  const r1 = evaluateGuess('España', target)
-  const r2 = evaluateGuess('Turquía', target)
-  if (!r1 || !r2) return []
-  return [r1, r2]
-}
-
 export function useGameState() {
   const target = getMockTarget()
 
   const [state, setState] = useState<GameState>({
     mode: 'diario',
     targetCountry: target,
-    guesses: getMockGuesses(target),
+    guesses: [],
     gameStatus: 'playing',
-    attemptsUsed: 2,
+    attemptsUsed: 0,
     maxAttempts: 6,
     searchQuery: '',
     searchResults: [],

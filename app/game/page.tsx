@@ -158,11 +158,14 @@ export default function GamePage() {
                       key={i}
                       role="listitem"
                       aria-label={used ? 'Intento usado' : current ? 'Intento actual' : 'Intento disponible'}
-                      className="flex-1 h-1.5 rounded-full"
                       style={{
-                        background: used ? '#00D4FF' : 'rgba(27,58,75,0.8)',
-                        border: current ? '1px solid #00D4FF' : 'none',
-                        animation: current ? 'pulse-glow 1.5s ease-in-out infinite' : undefined,
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        background: used ? '#00D4FF' : 'transparent',
+                        border: `2px solid ${used ? '#00D4FF' : current ? '#00D4FF' : 'rgba(0,212,255,0.3)'}`,
+                        animation: current ? 'pulse-glow 1.2s ease-in-out infinite' : undefined,
                       }}
                     />
                   )
@@ -328,16 +331,25 @@ export default function GamePage() {
 
         {/* ── RIGHT PANEL — Globe ──────────────────────────────────── */}
         <div
-          className="relative flex-1 min-h-0"
+          className="relative flex-1"
           style={{
-            minHeight: 280,
+            height: 320,
             borderTop: '1px solid rgba(27,58,75,0.6)',
           }}
         >
-          <div className="lg:hidden" style={{ height: 280 }}>
+          <div
+            className="lg:hidden absolute inset-0"
+          >
             <GlobeDynamic guesses={state.guesses} />
           </div>
-          <div className="hidden lg:block" style={{ height: 'calc(100dvh - 56px)', borderLeft: '1px solid rgba(27,58,75,0.6)', borderTop: 'none' }}>
+          <div
+            className="hidden lg:block absolute inset-0"
+            style={{
+              height: 'calc(100dvh - 56px)',
+              borderLeft: '1px solid rgba(27,58,75,0.6)',
+              borderTop: 'none',
+            }}
+          >
             <GlobeDynamic guesses={state.guesses} />
           </div>
         </div>

@@ -20,10 +20,11 @@ export default function Globe3D({ guesses, onCountryClick }: Globe3DProps) {
 
     const GlobeGL = (await import('globe.gl')).default
 
-    const width = mountRef.current.clientWidth || 600
-    const height = mountRef.current.clientHeight || 600
+    const container = mountRef.current
+    const width = container.clientWidth || 800
+    const height = container.clientHeight || 800
 
-    const globe = GlobeGL()(mountRef.current)
+    const globe = GlobeGL()(container)
       .width(width)
       .height(height)
       .backgroundColor('#0A0E1A')
@@ -115,8 +116,12 @@ export default function Globe3D({ guesses, onCountryClick }: Globe3DProps) {
   }, [guesses])
 
   return (
-    <div className="relative w-full h-full" style={{ background: '#0A0E1A' }}>
-      <div ref={mountRef} className="w-full h-full" aria-label="Globo interactivo 3D" />
+    <div className="relative w-full h-full overflow-hidden" style={{ background: '#0A0E1A' }}>
+      <div
+        ref={mountRef}
+        className="absolute inset-0 w-full h-full flex items-center justify-center"
+        aria-label="Globo interactivo 3D"
+      />
 
       {/* Legend */}
       <div
