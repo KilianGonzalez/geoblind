@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { ThemeProvider } from 'next-themes'
+import { ThemeWrapper } from '@/components/ThemeWrapper'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"] })
@@ -44,10 +44,10 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeWrapper>
           {children}
           {process.env.NODE_ENV === 'production' && <Analytics />}
-        </ThemeProvider>
+        </ThemeWrapper>
       </body>
     </html>
   )
