@@ -1,33 +1,91 @@
 'use client'
 
 import Link from 'next/link'
-import { Globe, Zap, Trophy, BarChart3 } from 'lucide-react'
+import { Globe, MapPin, Compass, Thermometer, Sun, Moon, LogIn } from 'lucide-react'
+import { useState } from 'react'
+
+const modes = [
+  { id: 'diario', label: 'Diario', color: '#00D4FF' },
+  { id: 'infinito', label: 'Infinito', color: '#A855F7' },
+  { id: 'region', label: 'Región', color: '#22C55E' },
+  { id: 'contrarreloj', label: 'Contrarreloj', color: '#F59E0B' },
+  { id: 'dificil', label: 'Difícil', color: '#EF4444' }
+]
 
 export default function Home() {
+  const [theme, setTheme] = useState('dark')
+  const [language, setLanguage] = useState('es')
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    if (typeof document !== 'undefined') {
+      if (newTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+      localStorage.setItem('theme', newTheme)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-background via-card to-background">
       {/* Header */}
       <header className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-8">
           <div className="flex items-center gap-2">
             <Globe className="w-8 h-8 text-primary" />
             <span className="font-bold text-xl text-foreground">GeoBlind</span>
           </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-foreground/70 hover:text-foreground transition-colors">
-              Características
-            </a>
-            <a href="#stats" className="text-foreground/70 hover:text-foreground transition-colors">
-              Estadísticas
-            </a>
-          </nav>
+
+          {/* Mode Tabs - Center */}
+          <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
+            {modes.map((mode) => (
+              <button
+                key={mode.id}
+                className="px-4 py-2 rounded-full font-medium text-sm transition-all hover:opacity-80"
+                style={{
+                  backgroundColor: mode.color,
+                  color: '#0A0E1A'
+                }}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right Controls */}
+          <div className="flex items-center gap-4">
+            <button
+              title="Language selector"
+              className="p-2 hover:bg-card rounded-lg transition-colors text-foreground"
+            >
+              <span className="text-lg">🌐</span>
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-card rounded-lg transition-colors text-foreground"
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
+            <button className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center gap-2">
+              <LogIn className="w-4 h-4" />
+              <span>Iniciar sesión</span>
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-4 py-20 md:py-32">
+      <section className="max-w-7xl mx-auto px-4 py-16 md:py-24">
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl font-bold text-foreground leading-tight">
                 Adivina el País Misterioso
@@ -49,35 +107,33 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-8 border-t border-border/40">
-              <div>
-                <div className="text-2xl font-bold text-primary">1M+</div>
-                <p className="text-sm text-foreground/60">Jugadores</p>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-primary">50M+</div>
-                <p className="text-sm text-foreground/60">Intentos</p>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-primary">100%</div>
-                <p className="text-sm text-foreground/60">Gratuito</p>
-              </div>
+            <div className="pt-6 border-t border-border/40">
+              <p className="text-sm text-foreground/70 font-mono">
+                <span className="text-primary font-semibold">🌍 12,847</span> jugadores hoy · 
+                <span className="text-primary font-semibold"> 🔥 4.2</span> intentos promedio · 
+                <span className="text-primary font-semibold"> 🏆 231</span> países disponibles
+              </p>
             </div>
           </div>
 
-          <div className="relative h-96 rounded-2xl overflow-hidden border border-border/40 bg-gradient-to-br from-ocean to-earth-teal/20">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Globe className="w-32 h-32 text-primary/30 animate-pulse-glow" />
+          <div className="relative flex items-center justify-center">
+            <div className="relative w-96 h-96 rounded-2xl overflow-hidden border border-border/40 bg-gradient-to-br from-ocean to-earth-teal/20 animate-spin-slow" style={{
+              animation: 'spin 30s linear infinite'
+            }}>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Globe className="w-96 h-96 text-primary/20" />
+              </div>
+              <div className="absolute inset-0 rounded-full" style={{
+                boxShadow: '0 0 80px rgba(0, 212, 255, 0.3)'
+              }}></div>
             </div>
-            <div className="absolute top-8 right-8 w-20 h-20 bg-primary/20 rounded-full blur-2xl"></div>
-            <div className="absolute bottom-8 left-8 w-32 h-32 bg-earth-teal/30 rounded-full blur-3xl"></div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="max-w-6xl mx-auto px-4 py-20 md:py-28">
-        <div className="text-center mb-16">
+      <section id="features" className="max-w-7xl mx-auto px-4 py-16 md:py-20">
+        <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-foreground mb-4">¿Cómo Funciona?</h2>
           <p className="text-lg text-foreground/60">Recibe pistas estratégicas para adivinar el país del día</p>
         </div>
@@ -85,17 +141,17 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
-              icon: Zap,
+              icon: MapPin,
               title: 'Pista de Distancia',
               description: 'Descubre a cuántos km de distancia está el país misterioso'
             },
             {
-              icon: BarChart3,
+              icon: Compass,
               title: 'Pista de Dirección',
               description: 'Sabe en qué dirección se encuentra: norte, sur, este u oeste'
             },
             {
-              icon: Trophy,
+              icon: Thermometer,
               title: 'Pista de Temperatura',
               description: 'Recibe el rango de temperatura para narrowdown tu búsqueda'
             }
@@ -113,9 +169,9 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section id="stats" className="max-w-6xl mx-auto px-4 py-20 md:py-28">
+      <section id="stats" className="max-w-7xl mx-auto px-4 py-16 md:py-20">
         <div className="bg-gradient-to-r from-ocean/20 to-earth-teal/20 rounded-2xl border border-border/40 p-12 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-8">Únete a Millones de Jugadores</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-6">Únete a Millones de Jugadores</h2>
           <p className="text-lg text-foreground/60 mb-8 max-w-2xl mx-auto">
             Todos los días, un nuevo país. Todos los días, un nuevo reto. ¿Cuántos aciertos puedes conseguir?
           </p>
@@ -129,8 +185,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 mt-20 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-foreground/60 text-sm">
+      <footer className="border-t border-border/40 mt-16 py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center text-foreground/60 text-sm">
           <p>© 2024 GeoBlind. Un juego de geografía diario. Hecho con ❤️</p>
         </div>
       </footer>

@@ -144,3 +144,17 @@
     transform: translateX(0);
   }
 }
+
+/* Globe rotation animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 30s linear infinite;
+}
