@@ -6,6 +6,7 @@ import { Globe, Search, Flag } from 'lucide-react'
 import { useGameState } from '@/hooks/use-game-state'
 import GuessCard from '@/components/GuessCard'
 import GlobeDynamic from '@/components/globe-dynamic'
+import GameResultModal from '@/components/game-result-modal'
 
 const DAY_NUMBER = 47
 
@@ -22,6 +23,7 @@ export default function GamePage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [showConfirmGiveUp, setShowConfirmGiveUp] = useState(false)
   const [newGuessIndex, setNewGuessIndex] = useState<number | null>(null)
+  const [modalDismissed, setModalDismissed] = useState(false)
 
   const handleSubmit = useCallback((name: string) => {
     if (!name.trim() || state.gameStatus !== 'playing') return
@@ -271,23 +273,20 @@ export default function GamePage() {
               ))}
             </div>
 
-            {/* Status message when game ends */}
-            {state.gameStatus !== 'playing' && (
-              <div
-                className="flex flex-col items-center gap-2 p-4 rounded-xl text-center"
-                style={{
-                  background: state.gameStatus === 'won' ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)',
-                  border: `1px solid ${state.gameStatus === 'won' ? '#4CAF5040' : '#F4433640'}`,
-                }}
-              >
-                <p className="font-bold text-foreground">
-                  {state.gameStatus === 'won'
-                    ? `Correcto en ${state.attemptsUsed} intento${state.attemptsUsed !== 1 ? 's' : ''}!`
-                    : `El país era ${state.targetCountry.flag} ${state.targetCountry.name}`}
-                </p>
-                <p className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                  Siguiente reto en 24 horas
-                </p>
+            {/* Reopen modal button when game ends and modal was dismissed */}
+            {state.gameStatus !== 'playing' && modalDismissed && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setModalDismissed(false)}
+                  className="px-5 py-2 rounded-lg font-semibold text-sm transition-colors"
+                  style={{
+                    background: state.gameStatus === 'won' ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)',
+                    border: `1px solid ${state.gameStatus === 'won' ? '#4CAF5040' : '#F4433640'}`,
+                    color: '#E8F4F8',
+                  }}
+                >
+                  Ver resultado
+                </button>
               </div>
             )}
 
@@ -328,6 +327,17 @@ export default function GamePage() {
             )}
           </div>
         </div>
+
+      {/* Result modal — shown automatically when game ends */}
+      {state.gameStatus !== 'playing' && !modalDismissed && (
+        <GameResultModal
+          status={state.gameStatus}
+          target={state.targetCountry}
+          guesses={state.guesses}
+          attemptsUsed={state.attemptsUsed}
+          onClose={() => setModalDismissed(true)}
+        />
+      )}
 
         {/* ── RIGHT PANEL — Globe ──────────────────────────────────── */}
         <div
