@@ -1,20 +1,33 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import type { ComponentProps } from 'react'
 
 const Globe3D = dynamic(() => import('./globe-3d'), {
   ssr: false,
   loading: () => (
     <div
-      className="w-full h-full flex items-center justify-center"
-      style={{ background: '#0A0E1A' }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: '#0A0E1A',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
-      <div className="flex flex-col items-center gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
         <div
-          className="w-16 h-16 rounded-full border-2 border-primary/30 border-t-primary animate-spin"
-          style={{ borderTopColor: '#00D4FF' }}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            border: '2px solid rgba(0,212,255,0.3)',
+            borderTopColor: '#00D4FF',
+            animation: 'spin 1s linear infinite',
+          }}
         />
-        <span className="text-sm text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#8BA4B0', fontSize: 14 }}>
           Cargando globo...
         </span>
       </div>
@@ -22,4 +35,19 @@ const Globe3D = dynamic(() => import('./globe-3d'), {
   ),
 })
 
-export default Globe3D
+type Globe3DProps = ComponentProps<typeof Globe3D>
+
+export default function GlobeDynamic(props: Globe3DProps) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+      }}
+    >
+      <Globe3D {...props} />
+    </div>
+  )
+}

@@ -86,7 +86,7 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
         {/* Flag + Name */}
         <div className="flex flex-col justify-center min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-2xl leading-none" aria-hidden="true">{country.flag}</span>
+            <span className="text-2xl leading-none" aria-hidden="true">{country.flag_emoji}</span>
             <span className="font-bold text-sm text-foreground truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
               {country.name}
             </span>

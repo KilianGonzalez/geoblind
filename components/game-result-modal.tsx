@@ -43,16 +43,41 @@ interface Props {
   target: CountryData
   guesses: GuessResult[]
   attemptsUsed: number
+  finalScore?: number
+  timeElapsedSec?: number
+  maxAttemptsDisplay?: number
+  dailyDayNumber?: number
   onClose: () => void
 }
 
-export default function GameResultModal({ status, target, guesses, attemptsUsed, onClose }: Props) {
+function formatTime(totalSec: number): string {
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+export default function GameResultModal({
+  status,
+  target,
+  guesses,
+  attemptsUsed,
+  finalScore = 0,
+  timeElapsedSec = 0,
+  maxAttemptsDisplay = 6,
+  dailyDayNumber = 47,
+  onClose,
+}: Props) {
   const router = useRouter()
   const countdown = useCountdown()
   const [copied, setCopied] = useState(false)
 
+  const attemptsLabel =
+    Number.isFinite(maxAttemptsDisplay) && maxAttemptsDisplay > 0 && maxAttemptsDisplay !== Number.POSITIVE_INFINITY
+      ? `${attemptsUsed}/${maxAttemptsDisplay}`
+      : `${attemptsUsed} intentos`
+
   const shareText = [
-    `GeoBlind #47 🌍`,
+    `GeoBlind #${dailyDayNumber} 🌍`,
     guesses.map(g => {
       const color = circleColor(g.proximityPct)
       if (color === '#4CAF50') return '🟢'
@@ -61,9 +86,7 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
       if (color === '#2D6A4F') return '🟤'
       return '🔵'
     }).join(''),
-    status === 'won'
-      ? `Lo conseguí en ${attemptsUsed}/6 intentos`
-      : `No lo conseguí hoy`,
+    status === 'won' ? `Lo conseguí en ${attemptsLabel}` : `No lo conseguí hoy`,
     `Juega en geoblind.com`,
   ].join('\n')
 
@@ -92,10 +115,10 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
 
   const won = status === 'won'
 
-  const mockStats = {
-    score: won ? Math.max(100, 600 - attemptsUsed * 80) : 0,
-    streak: 4,
-    time: '03:24',
+  const stats = {
+    score: won ? finalScore : 0,
+    streak: '—',
+    time: formatTime(timeElapsedSec),
   }
 
   return (
@@ -208,7 +231,7 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
             borderRadius: 14,
             marginBottom: 20,
           }}>
-            <span style={{ fontSize: 40, lineHeight: 1 }} aria-hidden="true">{target.flag}</span>
+            <span style={{ fontSize: 40, lineHeight: 1 }} aria-hidden="true">{target.flag_emoji}</span>
             <span style={{
               fontFamily: HEADING,
               fontSize: 26,
@@ -253,10 +276,10 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
               marginBottom: 20,
             }}>
               {[
-                { label: 'Intentos', value: `${attemptsUsed}/6` },
-                { label: 'Tiempo',   value: mockStats.time },
-                { label: 'Puntuación', value: mockStats.score.toLocaleString() },
-                { label: 'Racha',    value: `${mockStats.streak} 🔥` },
+                { label: 'Intentos', value: attemptsLabel },
+                { label: 'Tiempo', value: stats.time },
+                { label: 'Puntuación', value: stats.score.toLocaleString() },
+                { label: 'Racha', value: stats.streak },
               ].map(stat => (
                 <div key={stat.label} style={{
                   background: 'rgba(27, 58, 75, 0.5)',
@@ -285,7 +308,7 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
             marginBottom: 20,
           }}>
             <p style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: '#E8F4F8', margin: '0 0 8px' }}>
-              GeoBlind #47 🌍
+              GeoBlind #{dailyDayNumber} 🌍
             </p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }} aria-label="Resultados de intentos">
               {guesses.map((g, i) => (
@@ -301,7 +324,14 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
                   }}
                 />
               ))}
-              {Array.from({ length: Math.max(0, 6 - guesses.length) }).map((_, i) => (
+              {Array.from({
+                length: Math.max(
+                  0,
+                  (Number.isFinite(maxAttemptsDisplay) && maxAttemptsDisplay !== Number.POSITIVE_INFINITY
+                    ? maxAttemptsDisplay
+                    : 6) - guesses.length
+                ),
+              }).map((_, i) => (
                 <div
                   key={`empty-${i}`}
                   style={{
@@ -338,7 +368,7 @@ export default function GameResultModal({ status, target, guesses, attemptsUsed,
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
             <button
-              onClick={() => router.push('/game?mode=infinito')}
+              onClick={() => router.push('/game?mode=infinite')}
               style={{
                 flex: 1,
                 padding: '12px 16px',

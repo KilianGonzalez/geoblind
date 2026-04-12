@@ -13,7 +13,7 @@ export default function GuessInput({ onGuess, disabled }: GuessInputProps) {
   const [input, setInput] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLFormElement>(null)
 
   const allCountries = getAllCountries()
 

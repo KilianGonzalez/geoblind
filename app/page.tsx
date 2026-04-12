@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Globe, MapPin, Compass, Thermometer, Sun, Moon, LogIn } from 'lucide-react'
-import { useState } from 'react'
+import { use, useState } from 'react'
 
 const modes = [
   { id: 'diario', label: 'Diario', color: '#00D4FF' },
@@ -12,7 +12,16 @@ const modes = [
   { id: 'dificil', label: 'Difícil', color: '#EF4444' }
 ]
 
-export default function Home() {
+export default function Home({
+  params,
+  searchParams,
+}: {
+  params: Promise<Record<string, never>>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  use(params)
+  use(searchParams)
+
   const [theme, setTheme] = useState('dark')
   const [language, setLanguage] = useState('es')
 
@@ -97,7 +106,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/game"
+                href="/game?mode=daily"
                 className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors text-center"
               >
                 Jugar Ahora
@@ -176,7 +185,7 @@ export default function Home() {
             Todos los días, un nuevo país. Todos los días, un nuevo reto. ¿Cuántos aciertos puedes conseguir?
           </p>
           <Link
-            href="/game"
+            href="/game?mode=daily"
             className="inline-block px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors"
           >
             Comenzar Ahora
