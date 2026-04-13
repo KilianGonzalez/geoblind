@@ -2,13 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ButtonGroup } from '@/components/ui/button-group'
+import { useLanguage } from '@/hooks/use-language'
 
 export default function AuthPage() {
+  const { language, t } = useLanguage()
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ username: '', email: '', password: '' })
@@ -34,7 +38,7 @@ export default function AuthPage() {
         router.push('/game')
       }
     } catch (err) {
-      setError('Error al iniciar sesión')
+      setError(t('loginError'))
     } finally {
       setLoading(false)
     }
@@ -60,7 +64,7 @@ export default function AuthPage() {
         router.push('/game')
       }
     } catch (err) {
-      setError('Error al crear cuenta')
+      setError(t('registerError'))
     } finally {
       setLoading(false)
     }
@@ -70,8 +74,17 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-6">
         <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Link 
+              href="/"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t('back')}</span>
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">GeoBlind</h1>
-          <p className="text-muted-foreground">El juego de geografía diario</p>
+          <p className="text-muted-foreground">{language === 'es' ? 'El juego de geografía diario' : 'The daily geography game'}</p>
         </div>
 
         <ButtonGroup className="w-full mb-6">
@@ -80,25 +93,25 @@ export default function AuthPage() {
             onClick={() => setActiveTab('login')}
             className="flex-1"
           >
-            Iniciar sesión
+            {t('signIn')}
           </Button>
           <Button
             variant={activeTab === 'register' ? 'default' : 'outline'}
             onClick={() => setActiveTab('register')}
             className="flex-1"
           >
-            Crear cuenta
+            {t('signUp')}
           </Button>
         </ButtonGroup>
 
         {activeTab === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
+              <Label htmlFor="login-email">{t('email')}</Label>
               <Input
                 id="login-email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder={language === 'es' ? 'tu@email.com' : 'your@email.com'}
                 value={loginForm.email}
                 onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                 required
@@ -106,7 +119,7 @@ export default function AuthPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="login-password">Contraseña</Label>
+              <Label htmlFor="login-password">{t('password')}</Label>
               <Input
                 id="login-password"
                 type="password"
@@ -118,17 +131,17 @@ export default function AuthPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {loading ? t('signingIn') : t('signIn')}
             </Button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="register-username">Nombre de usuario</Label>
+              <Label htmlFor="register-username">{t('username')}</Label>
               <Input
                 id="register-username"
                 type="text"
-                placeholder="jugador123"
+                placeholder={language === 'es' ? 'jugador123' : 'player123'}
                 value={registerForm.username}
                 onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
                 required
@@ -136,11 +149,11 @@ export default function AuthPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="register-email">Email</Label>
+              <Label htmlFor="register-email">{t('email')}</Label>
               <Input
                 id="register-email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder={language === 'es' ? 'tu@email.com' : 'your@email.com'}
                 value={registerForm.email}
                 onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                 required
@@ -148,7 +161,7 @@ export default function AuthPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="register-password">Contraseña</Label>
+              <Label htmlFor="register-password">{t('password')}</Label>
               <Input
                 id="register-password"
                 type="password"
@@ -160,7 +173,7 @@ export default function AuthPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+              {loading ? t('signingUp') : t('createAccount')}
             </Button>
           </form>
         )}

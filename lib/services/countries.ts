@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Country } from '@/lib/types'
+import { getCountryName } from './country-translations'
+import { useLanguage } from '@/hooks/use-language'
 
 let countriesCache: Country[] | null = null
 
-function mapCountryRow(row: Record<string, unknown>): Country {
+function mapCountryRow(row: Record<string, unknown>, language: 'es' | 'en' = 'es'): Country {
   return {
     id: String(row.id),
-    name: String(row.name),
+    name: getCountryName(String(row.iso_code), language),
     iso_code: String(row.iso_code),
     lat: Number(row.lat),
     lng: Number(row.lng),
@@ -37,7 +39,7 @@ export async function getAllCountries(): Promise<Country[]> {
     throw new Error(error.message)
   }
 
-  const list = (data ?? []).map(row => mapCountryRow(row as Record<string, unknown>))
+  const list = (data ?? []).map(row => mapCountryRow(row as Record<string, unknown>, 'es')) // Por defecto español
   countriesCache = list
   return list
 }

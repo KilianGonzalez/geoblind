@@ -1,16 +1,86 @@
 'use client'
 
 import Link from 'next/link'
-import { Globe, MapPin, Compass, Thermometer, Sun, Moon, LogIn } from 'lucide-react'
-import { use, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Globe, MapPin, Compass, Thermometer, Sun, Moon, LogIn, ChevronDown } from 'lucide-react'
+import { use, useState, useEffect } from 'react'
+import { useTheme } from '@/hooks/use-theme'
+import { useLanguage } from '@/hooks/use-language'
 
 const modes = [
-  { id: 'diario', label: 'Diario', color: '#00D4FF' },
-  { id: 'infinito', label: 'Infinito', color: '#A855F7' },
-  { id: 'region', label: 'Región', color: '#22C55E' },
-  { id: 'contrarreloj', label: 'Contrarreloj', color: '#F59E0B' },
-  { id: 'dificil', label: 'Difícil', color: '#EF4444' }
+  { id: 'diario', label: { es: 'Diario', en: 'Daily' }, color: '#00D4FF' },
+  { id: 'infinito', label: { es: 'Infinito', en: 'Infinite' }, color: '#A855F7' },
+  { id: 'region', label: { es: 'Región', en: 'Region' }, color: '#22C55E' },
+  { id: 'contrarreloj', label: { es: 'Contrarreloj', en: 'Timed' }, color: '#F59E0B' },
+  { id: 'dificil', label: { es: 'Difícil', en: 'Hard' }, color: '#EF4444' }
 ]
+
+const translations = {
+  es: {
+    title: 'Adivina el País Misterioso',
+    subtitle: 'Un nuevo reto de geografía cada día. Recibe pistas de distancia, dirección y temperatura. ¿Puedes adivinar en menos intentos?',
+    playNow: 'Jugar Ahora',
+    readRules: 'Leer Reglas',
+    login: 'Iniciar sesión',
+    howItWorks: '¿Cómo Funciona?',
+    howItWorksSubtitle: 'Recibe pistas estratégicas para adivinar el país del día',
+    distanceHint: 'Pista de Distancia',
+    distanceHintDesc: 'Descubre a cuántos km de distancia está el país misterioso',
+    directionHint: 'Pista de Dirección',
+    directionHintDesc: 'Sabe en qué dirección se encuentra: norte, sur, este u oeste',
+    temperatureHint: 'Pista de Temperatura',
+    temperatureHintDesc: 'Recibe el rango de temperatura para narrowdown tu búsqueda',
+    joinMillions: 'Únete a Millones de Jugadores',
+    joinMillionsSubtitle: 'Todos los días, un nuevo país. Todos los días, un nuevo reto. ¿Cuántos aciertos puedes conseguir?',
+    startNow: 'Comenzar Ahora',
+    footerTitle: 'GeoBlind',
+    footerDesc: 'El juego de geografía diario que desafía tu conocimiento del mundo.',
+    game: 'Juego',
+    play: 'Jugar Ahora',
+    howToPlay: 'Cómo Jugar',
+    globalRanking: 'Ranking Global',
+    account: 'Cuenta',
+    signIn: 'Iniciar Sesión',
+    myProfile: 'Mi Perfil',
+    settings: 'Configuración',
+    more: 'Más',
+    aboutUs: 'Sobre Nosotros',
+    contact: 'Contacto',
+    copyright: '© 2024 GeoBlind. Un juego de geografía diario. Hecho con'
+  },
+  en: {
+    title: 'Guess the Mystery Country',
+    subtitle: 'A new geography challenge every day. Get distance, direction and temperature clues. Can you guess in fewer attempts?',
+    playNow: 'Play Now',
+    readRules: 'Read Rules',
+    login: 'Sign In',
+    howItWorks: 'How It Works?',
+    howItWorksSubtitle: 'Get strategic clues to guess the country of the day',
+    distanceHint: 'Distance Clue',
+    distanceHintDesc: 'Discover how many km away the mystery country is',
+    directionHint: 'Direction Clue',
+    directionHintDesc: 'Know where it is located: north, south, east or west',
+    temperatureHint: 'Temperature Clue',
+    temperatureHintDesc: 'Get the temperature range to narrow down your search',
+    joinMillions: 'Join Millions of Players',
+    joinMillionsSubtitle: 'Every day, a new country. Every day, a new challenge. How many correct answers can you get?',
+    startNow: 'Start Now',
+    footerTitle: 'GeoBlind',
+    footerDesc: 'The daily geography game that challenges your world knowledge.',
+    game: 'Game',
+    play: 'Play Now',
+    howToPlay: 'How to Play',
+    globalRanking: 'Global Ranking',
+    account: 'Account',
+    signIn: 'Sign In',
+    myProfile: 'My Profile',
+    settings: 'Settings',
+    more: 'More',
+    aboutUs: 'About Us',
+    contact: 'Contact',
+    copyright: '© 2024 GeoBlind. A daily geography game. Made with'
+  }
+}
 
 export default function Home({
   params,
@@ -21,22 +91,36 @@ export default function Home({
 }) {
   use(params)
   use(searchParams)
+  const router = useRouter()
+  const { theme, toggleTheme } = useTheme()
+  const { language, changeLanguage, t: gameTranslations, getLanguageFlag, getLanguageName } = useLanguage()
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
-  const [theme, setTheme] = useState('dark')
-  const [language, setLanguage] = useState('es')
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark'
-    setTheme(newTheme)
-    if (typeof document !== 'undefined') {
-      if (newTheme === 'dark') {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.language-dropdown')) {
+        setShowLanguageDropdown(false)
       }
-      localStorage.setItem('theme', newTheme)
     }
+
+    if (showLanguageDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showLanguageDropdown])
+
+  const handleLanguageChange = (lang: 'es' | 'en') => {
+    changeLanguage(lang)
+    setShowLanguageDropdown(false)
   }
+
+  const handleLogin = () => {
+    router.push('/auth')
+  }
+
+  const t = translations[language as keyof typeof translations]
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background via-card to-background">
@@ -59,33 +143,66 @@ export default function Home({
                   color: '#0A0E1A'
                 }}
               >
-                {mode.label}
+                {mode.label[language as keyof typeof mode.label]}
               </button>
             ))}
           </div>
 
           {/* Right Controls */}
           <div className="flex items-center gap-4">
-            <button
-              title="Language selector"
-              className="p-2 hover:bg-card rounded-lg transition-colors text-foreground"
-            >
-              <span className="text-lg">🌐</span>
-            </button>
+            {/* Language Selector */}
+            <div className="relative language-dropdown">
+              <button
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                title="Language selector"
+                className="p-2 hover:bg-card rounded-lg transition-colors text-foreground flex items-center gap-1"
+              >
+                <span className="text-lg">??</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              
+              {showLanguageDropdown && (
+                <div className="absolute right-0 top-full mt-1 p-2 rounded-lg border border-border/40 bg-card shadow-lg z-50">
+                  <button
+                    onClick={() => changeLanguage('es')}
+                    className={`w-full text-left px-3 py-2 hover:bg-accent transition-colors ${
+                      language === 'es' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
+                  >
+                    {getLanguageFlag('es')} {getLanguageName('es')}
+                  </button>
+                  <button
+                    onClick={() => changeLanguage('en')}
+                    className={`w-full text-left px-3 py-2 hover:bg-accent transition-colors ${
+                      language === 'en' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
+                  >
+                    {getLanguageFlag('en')} {getLanguageName('en')}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 hover:bg-card rounded-lg transition-colors text-foreground"
               title="Toggle theme"
             >
               {theme === 'dark' ? (
-                <Sun className="w-5 h-5" />
-              ) : (
                 <Moon className="w-5 h-5" />
+              ) : (
+                <Sun className="w-5 h-5" />
               )}
             </button>
-            <button className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center gap-2">
+            
+            {/* Login Button */}
+            <button 
+              onClick={handleLogin}
+              className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center gap-2"
+            >
               <LogIn className="w-4 h-4" />
-              <span>Iniciar sesión</span>
+              <span>{t.login}</span>
             </button>
           </div>
         </div>
@@ -97,10 +214,10 @@ export default function Home({
           <div className="space-y-6">
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl font-bold text-foreground leading-tight">
-                Adivina el País Misterioso
+                {t.title}
               </h1>
               <p className="text-xl text-foreground/70">
-                Un nuevo reto de geografía cada día. Recibe pistas de distancia, dirección y temperatura. ¿Puedes adivinar en menos intentos?
+                {t.subtitle}
               </p>
             </div>
 
@@ -109,11 +226,14 @@ export default function Home({
                 href="/game?mode=daily"
                 className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors text-center"
               >
-                Jugar Ahora
+                {t.playNow}
               </Link>
-              <button className="px-8 py-3 border border-border rounded-lg text-foreground hover:bg-card transition-colors font-semibold">
-                Leer Reglas
-              </button>
+              <Link 
+                href="/rules"
+                className="px-8 py-3 border border-border rounded-lg text-foreground hover:bg-card transition-colors font-semibold"
+              >
+                {t.readRules}
+              </Link>
             </div>
 
             <div className="pt-6 border-t border-border/40">
@@ -143,26 +263,26 @@ export default function Home({
       {/* Features Section */}
       <section id="features" className="max-w-7xl mx-auto px-4 py-16 md:py-20">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-foreground mb-4">¿Cómo Funciona?</h2>
-          <p className="text-lg text-foreground/60">Recibe pistas estratégicas para adivinar el país del día</p>
+          <h2 className="text-4xl font-bold text-foreground mb-4">{t.howItWorks}</h2>
+          <p className="text-lg text-foreground/60">{t.howItWorksSubtitle}</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
               icon: MapPin,
-              title: 'Pista de Distancia',
-              description: 'Descubre a cuántos km de distancia está el país misterioso'
+              title: t.distanceHint,
+              description: t.distanceHintDesc
             },
             {
               icon: Compass,
-              title: 'Pista de Dirección',
-              description: 'Sabe en qué dirección se encuentra: norte, sur, este u oeste'
+              title: t.directionHint,
+              description: t.directionHintDesc
             },
             {
               icon: Thermometer,
-              title: 'Pista de Temperatura',
-              description: 'Recibe el rango de temperatura para narrowdown tu búsqueda'
+              title: t.temperatureHint,
+              description: t.temperatureHintDesc
             }
           ].map((feature, i) => (
             <div
@@ -180,23 +300,95 @@ export default function Home({
       {/* Stats Section */}
       <section id="stats" className="max-w-7xl mx-auto px-4 py-16 md:py-20">
         <div className="bg-gradient-to-r from-ocean/20 to-earth-teal/20 rounded-2xl border border-border/40 p-12 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-6">Únete a Millones de Jugadores</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-6">{t.joinMillions}</h2>
           <p className="text-lg text-foreground/60 mb-8 max-w-2xl mx-auto">
-            Todos los días, un nuevo país. Todos los días, un nuevo reto. ¿Cuántos aciertos puedes conseguir?
+            {t.joinMillionsSubtitle}
           </p>
           <Link
             href="/game?mode=daily"
             className="inline-block px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Comenzar Ahora
+            {t.startNow}
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-foreground/60 text-sm">
-          <p>© 2024 GeoBlind. Un juego de geografía diario. Hecho con ❤️</p>
+      <footer className="border-t border-border/40 mt-16 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Globe className="w-6 h-6 text-primary" />
+                <span className="font-bold text-lg text-foreground">{t.footerTitle}</span>
+              </div>
+              <p className="text-foreground/60 text-sm">
+                {t.footerDesc}
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">{t.game}</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/game" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.play}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/rules" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.howToPlay}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/ranking" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.globalRanking}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">{t.account}</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/auth" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.signIn}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/profile" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.myProfile}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/settings" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.settings}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">{t.more}</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/about" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.aboutUs}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-foreground/60 hover:text-primary transition-colors">
+                    {t.contact}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-border/40 pt-8 text-center text-foreground/60 text-sm">
+            <p>{t.copyright} <span className="text-red-500">red</span></p>
+          </div>
         </div>
       </footer>
     </main>

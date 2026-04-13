@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import * as THREE from 'three'
+import { useLanguage } from '@/hooks/use-language'
 
 interface Globe3DProps {
   guesses: Array<{
@@ -45,6 +46,7 @@ function latLngToVector3(lat: number, lng: number, radius: number = 1): THREE.Ve
 }
 
 export default function Globe3D({ guesses, onCountryClick }: Globe3DProps) {
+  const { language } = useLanguage()
   const mountRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -288,28 +290,26 @@ export default function Globe3D({ guesses, onCountryClick }: Globe3DProps) {
         }}
       >
         {[
-          { color: '#1E6091', label: 'Lejos' },
-          { color: '#2D6A4F', label: 'Medio' },
-          { color: '#C9A84C', label: 'Cerca' },
-          { color: '#FF6B35', label: 'Muy cerca' },
-          { color: '#4CAF50', label: 'Correcto' },
-        ].map(item => (
-          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: item.color,
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ fontSize: 12, color: '#8BA4B0', fontFamily: 'JetBrains Mono, monospace' }}>
-              {item.label}
-            </span>
-          </div>
-        ))}
+          { color: '#1E6091', key: 'far' },
+          { color: '#2D6A4F', key: 'medium' },
+          { color: '#C9A84C', key: 'close' },
+          { color: '#FF6B35', key: 'veryClose' },
+          { color: '#4CAF50', key: 'correct' },
+        ].map(item => {
+          const labels = {
+            es: { far: 'Lejos', medium: 'Medio', close: 'Cerca', veryClose: 'Muy cerca', correct: 'Correcto' },
+            en: { far: 'Far', medium: 'Medium', close: 'Close', veryClose: 'Very close', correct: 'Correct' }
+          }
+          const label = labels[language as 'es' | 'en'][item.key as keyof typeof labels.es]
+          return (
+            <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: '#8BA4B0', fontFamily: 'JetBrains Mono, monospace' }}>
+                {label}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

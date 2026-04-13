@@ -1,7 +1,8 @@
 'use client'
 
 import { Hint } from '@/lib/types'
-import { Compass, Thermometer, Zap } from 'lucide-react'
+import { Compass, Thermometer, Zap, Building, Users, Coins, Globe, Lightbulb } from 'lucide-react'
+import { useLanguage } from '@/hooks/use-language'
 
 interface HintDisplayProps {
   hint: Hint
@@ -9,6 +10,8 @@ interface HintDisplayProps {
 }
 
 export default function HintDisplay({ hint, index }: HintDisplayProps) {
+  const { t, language } = useLanguage()
+
   const getHintIcon = () => {
     switch (hint.type) {
       case 'distance':
@@ -17,18 +20,45 @@ export default function HintDisplay({ hint, index }: HintDisplayProps) {
         return <Compass className="w-5 h-5" />
       case 'temperature':
         return <Thermometer className="w-5 h-5" />
+      case 'capital':
+        return <Building className="w-5 h-5" />
+      case 'population':
+        return <Users className="w-5 h-5" />
+      case 'currency':
+        return <Coins className="w-5 h-5" />
+      case 'language':
+        return <Globe className="w-5 h-5" />
+      case 'fun_fact':
+        return <Lightbulb className="w-5 h-5" />
+      default:
+        return <Zap className="w-5 h-5" />
     }
   }
 
   const getHintLabel = () => {
-    switch (hint.type) {
-      case 'distance':
-        return 'Distancia'
-      case 'direction':
-        return 'Dirección'
-      case 'temperature':
-        return 'Temperatura'
+    const labels = {
+      es: {
+        distance: 'Distancia',
+        direction: 'Dirección', 
+        temperature: 'Temperatura',
+        capital: 'Capital',
+        population: 'Población',
+        currency: 'Moneda',
+        language: 'Idioma',
+        fun_fact: 'Dato Curioso'
+      },
+      en: {
+        distance: 'Distance',
+        direction: 'Direction',
+        temperature: 'Temperature',
+        capital: 'Capital',
+        population: 'Population', 
+        currency: 'Currency',
+        language: 'Language',
+        fun_fact: 'Fun Fact'
+      }
     }
+    return labels[language][hint.type]
   }
 
   return (

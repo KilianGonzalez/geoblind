@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import type { GuessResult } from '@/lib/game-logic'
+import { useLanguage } from '@/hooks/use-language'
 
 
 function proximityBg(pct: number): string {
@@ -27,6 +28,7 @@ interface GuessCardProps {
 
 export default function GuessCard({ result, isNew = false }: GuessCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const { language } = useLanguage()
   const { country, distance, direction, proximityPct, isCorrect } = result
 
   const bgColor = proximityBg(proximityPct)
@@ -120,12 +122,12 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
         <div className="flex flex-col items-center justify-center min-w-[40px]">
           {isCorrect ? (
             <>
-              <span className="text-2xl leading-none" aria-label="Correcto">🎉</span>
+              <span className="text-2xl leading-none" aria-label={language === 'es' ? 'Correcto' : 'Correct'}>??</span>
               <span
                 className="text-xs font-bold mt-0.5"
                 style={{ color: '#4CAF50', fontFamily: 'JetBrains Mono, monospace' }}
               >
-                Correcto!
+                {language === 'es' ? 'Correcto!' : 'Correct!'}
               </span>
             </>
           ) : (

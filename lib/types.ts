@@ -1,5 +1,5 @@
 export interface Hint {
-  type: 'distance' | 'direction' | 'temperature'
+  type: 'distance' | 'direction' | 'temperature' | 'capital' | 'population' | 'currency' | 'language' | 'fun_fact'
   value: string | number
   revealed: boolean
 }

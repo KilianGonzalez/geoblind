@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Globe, Search, Flag } from 'lucide-react'
+import { Globe, Search, Flag, Sun, Moon, ChevronDown } from 'lucide-react'
 import { useGameState, parseGameModeParam } from '@/hooks/use-game-state'
 import { useAuthUser } from '@/hooks/use-auth-user'
+import { useTheme } from '@/hooks/use-theme'
+import { useLanguage } from '@/hooks/use-language'
 import GuessCard from '@/components/GuessCard'
 import GlobeDynamic from '@/components/globe-dynamic'
 import GameResultModal from '@/components/game-result-modal'
@@ -14,21 +16,21 @@ import type { Country } from '@/lib/types'
 import type { GuessResult } from '@/lib/game-logic'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const MODE_LABELS: Record<string, string> = {
-  daily: 'MODO DIARIO',
-  infinite: 'MODO INFINITO',
-  region: 'MODO REGIÓN',
-  timed: 'CONTRARRELOJ',
-  hard: 'MODO DIFÍCIL',
-}
-
-const MODE_TABS: { id: string; label: string; color: string }[] = [
-  { id: 'daily', label: 'Diario', color: '#00D4FF' },
-  { id: 'infinite', label: 'Infinito', color: '#A855F7' },
-  { id: 'region', label: 'Región', color: '#22C55E' },
-  { id: 'timed', label: 'Contrarreloj', color: '#F59E0B' },
-  { id: 'hard', label: 'Difícil', color: '#EF4444' },
+const MODE_TABS: { id: string; color: string }[] = [
+  { id: 'daily', color: '#00D4FF' },
+  { id: 'infinite', color: '#A855F7' },
+  { id: 'region', color: '#22C55E' },
+  { id: 'timed', color: '#F59E0B' },
+  { id: 'hard', color: '#EF4444' },
 ]
+
+const getModeLabels = (lang: 'es' | 'en') => ({
+  daily: lang === 'es' ? 'MODO DIARIO' : 'DAILY MODE',
+  infinite: lang === 'es' ? 'MODO INFINITO' : 'INFINITE MODE',
+  region: lang === 'es' ? 'MODO REGIÓN' : 'REGION MODE',
+  timed: lang === 'es' ? 'CONTRARRELOJ' : 'TIMED MODE',
+  hard: lang === 'es' ? 'MODO DIFÍCIL' : 'HARD MODE',
+})
 
 function dayOfYear(d: Date): number {
   const start = new Date(d.getFullYear(), 0, 0)
@@ -49,25 +51,26 @@ function GameNavbar({
   authLoading: boolean
 }) {
   const router = useRouter()
+  const { theme, toggleTheme } = useTheme()
+  const { language, changeLanguage, t, getLanguageFlag, getLanguageName } = useLanguage()
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+
+  const modeLabels = {
+    daily: t('daily'),
+    infinite: t('infinite'),
+    region: t('region'),
+    timed: t('timed'),
+    hard: t('hard')
+  }
+
   return (
-    <header
-      className="flex items-center justify-between flex-shrink-0 px-5"
-      style={{
-        height: 56,
-        borderBottom: '1px solid rgba(27,58,75,0.7)',
-        background: 'rgba(13,27,42,0.95)',
-        backdropFilter: 'blur(12px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}
-    >
+    <header className="flex items-center justify-between flex-shrink-0 px-5 h-14 border-b border-border/40 bg-card/95 backdrop-blur-md sticky top-0 z-50">
       <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
         <Globe className="w-6 h-6 text-primary" />
         <span className="font-bold text-base text-foreground">GeoBlind</span>
       </Link>
 
-      <nav className="hidden md:flex items-center gap-1" aria-label="Modos de juego">
+      <nav className="hidden md:flex items-center gap-1" aria-label={language === 'es' ? 'Modos de juego' : 'Game Modes'}>
         {MODE_TABS.map(m => (
           <button
             key={m.id}
@@ -76,48 +79,82 @@ function GameNavbar({
               const q = m.id === 'region' ? '?mode=region&continent=Europa' : `?mode=${m.id}`
               router.push(`/game${q}`)
             }}
-            className="px-4 py-1.5 rounded-full text-sm font-semibold transition-all"
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+              activeMode === m.id
+                ? 'text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
             style={{
-              background: activeMode === m.id ? m.color : 'transparent',
-              color: activeMode === m.id ? '#0A0E1A' : '#8BA4B0',
+              backgroundColor: activeMode === m.id ? m.color : 'transparent',
               border: `1px solid ${activeMode === m.id ? m.color : 'transparent'}`,
             }}
             aria-current={activeMode === m.id ? 'page' : undefined}
           >
-            {m.label}
+            {modeLabels[m.id as keyof typeof modeLabels]}
           </button>
         ))}
       </nav>
 
       <div className="flex items-center gap-3">
-        <button className="text-muted-foreground hover:text-foreground transition-colors" title="Idioma">
-          <span className="text-lg">🌐</span>
-        </button>
-        <span className="text-sm font-semibold text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-          ES
-        </span>
-        {authLoading ? (
-          <Skeleton className="h-8 w-8 rounded-full" />
-        ) : user ? (
-          <Link
-            href="/ranking"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold"
-            style={{
-              background: 'rgba(0,212,255,0.15)',
-              border: '1px solid rgba(0,212,255,0.4)',
-              color: '#00D4FF',
-            }}
-            title={user.email ?? 'Cuenta'}
+        {/* Language Selector */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            title="Idioma"
           >
-            {(user.email?.charAt(0) ?? '?').toUpperCase()}
-          </Link>
+            <span className="text-lg">??</span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {showLanguageDropdown && (
+            <div className="absolute right-0 top-full mt-1 p-2 rounded-lg border border-border/40 bg-card shadow-lg z-50">
+              <button
+                onClick={() => { changeLanguage('es'); setShowLanguageDropdown(false) }}
+                className={`w-full text-left px-3 py-2 rounded hover:bg-card/50 transition-colors text-sm ${
+                  language === 'es' ? 'text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                ?? Español
+              </button>
+              <button
+                onClick={() => { changeLanguage('en'); setShowLanguageDropdown(false) }}
+                className={`w-full text-left px-3 py-2 rounded hover:bg-card/50 transition-colors text-sm ${
+                  language === 'en' ? 'text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                ?? English
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          title="Cambiar tema"
+        >
+          {theme === 'dark' ? (
+            <Moon className="w-5 h-5" />
+          ) : (
+            <Sun className="w-5 h-5" />
+          )}
+        </button>
+
+        {/* User Menu */}
+        {authLoading ? (
+          <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+        ) : user ? (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-xs font-bold">
+            {user.email?.slice(0, 2).toUpperCase()}
+          </div>
         ) : (
           <Link
-            href="/login"
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            style={{ fontFamily: 'JetBrains Mono, monospace' }}
+            href="/auth"
+            className="px-3 py-1.5 text-sm font-medium border border-border rounded-md hover:bg-card transition-colors"
           >
-            Entrar
+            {language === 'es' ? 'Iniciar Sesión' : 'Sign In'}
           </Link>
         )}
       </div>
@@ -132,6 +169,7 @@ function GameInner() {
 
   const [globeGuesses, setGlobeGuesses] = useState<GuessResult[]>([])
   const { user, loading: authLoading } = useAuthUser()
+  const { t } = useLanguage()
   const { state, initGame, submitGuess, updateSearch, navigateResults, clearSearch, giveUp } = useGameState({
     onGuessesChange: setGlobeGuesses,
   })
@@ -212,7 +250,7 @@ function GameInner() {
     : Math.min(Math.max(state.attemptsUsed + (isPlaying ? 1 : 0), 6), 24)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#0A0E1A' }}>
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       <GameNavbar activeMode={modeParam} user={user} authLoading={authLoading} />
 
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
@@ -220,7 +258,7 @@ function GameInner() {
           className="flex flex-col flex-shrink-0 overflow-y-auto w-full lg:w-[40%]"
           style={{ maxHeight: 'calc(100dvh - 56px)' }}
         >
-          <div className="flex flex-col gap-4 p-5" style={{ minHeight: '100%' }}>
+          <div className="flex flex-col gap-4 p-5 min-h-full">
             {state.isLoading ? (
               <div className="flex flex-col gap-3 py-6">
                 <Skeleton className="h-8 w-48 rounded-full" />
@@ -235,41 +273,32 @@ function GameInner() {
               <>
                 <div className="flex items-center gap-2">
                   <span
-                    className="px-3 py-1 rounded-full text-xs font-bold tracking-widest"
-                    style={{
-                      background: 'rgba(0,212,255,0.12)',
-                      border: '1px solid rgba(0,212,255,0.4)',
-                      color: '#00D4FF',
-                      fontFamily: 'JetBrains Mono, monospace',
-                    }}
+                    className="px-3 py-1 rounded-full text-xs font-bold tracking-widest bg-primary/10 border border-primary/40 text-primary font-mono"
                   >
-                    {MODE_LABELS[state.mode] ?? state.mode} &middot; Día {dayNum}
+                    {getModeLabels(language)[state.mode] ?? state.mode} · {t('day')} {dayNum}
                   </span>
                 </div>
 
                 {state.mode === 'timed' && state.timeLeftSec != null && isPlaying && (
                   <p
-                    className="text-center text-sm font-bold tabular-nums"
-                    style={{ fontFamily: 'JetBrains Mono, monospace', color: '#F59E0B' }}
+                    className="text-center text-sm font-bold tabular-nums font-mono text-yellow-500"
                   >
-                    Tiempo: {state.timeLeftSec}s
+                    {t('time')}: {state.timeLeftSec}s
                   </p>
                 )}
 
                 <div
-                  className="flex flex-col gap-2 p-4 rounded-xl"
-                  style={{ background: '#0D1B2A', border: '1px solid rgba(27,58,75,0.8)' }}
+                  className="flex flex-col gap-2 p-4 rounded-xl border border-border/40 bg-card"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-foreground">
-                      Intento {state.attemptsUsed}
-                      {Number.isFinite(state.maxAttempts) ? ` / ${state.maxAttempts}` : ' / ∞'}
+                      {t('attempt')} {state.attemptsUsed}
+                      {Number.isFinite(state.maxAttempts) ? ` / ${state.maxAttempts}` : ' / ' + String.fromCharCode(8734)}
                     </span>
                     <span
-                      className="text-xs text-muted-foreground"
-                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                      className="text-xs text-muted-foreground font-mono"
                     >
-                      {attemptsLeft != null ? `${attemptsLeft} restantes` : 'Sin límite'}
+                      {attemptsLeft != null ? `${attemptsLeft} ${t('attemptsLeft')}` : t('withoutLimit')}
                     </span>
                   </div>
                   <div className="flex gap-2 mt-1 flex-wrap" role="list" aria-label="Intentos usados">
@@ -310,28 +339,16 @@ function GameInner() {
                       id="country-search"
                       ref={inputRef}
                       type="text"
-                      placeholder="Escribe un país..."
+                      placeholder={t('writeCountry')}
                       disabled={!isPlaying}
                       autoComplete="off"
                       value={state.searchQuery}
                       onChange={e => void updateSearch(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full pl-12 pr-10 text-foreground placeholder-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
-                      style={{
-                        height: 52,
-                        background: '#0D1B2A',
-                        border: '1px solid',
-                        borderColor: state.searchQuery ? '#00D4FF' : 'rgba(27,58,75,0.8)',
-                        borderRadius: 12,
-                        fontSize: 15,
-                        boxShadow: state.searchQuery ? '0 0 0 3px rgba(0,212,255,0.15)' : undefined,
-                        fontFamily: 'Inter, sans-serif',
-                        transition: 'border-color 200ms, box-shadow 200ms',
-                      }}
+                      className="w-full pl-12 pr-10 h-13 text-foreground placeholder-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none bg-background border rounded-xl text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
                     <span
-                      className="absolute right-4 text-xs text-muted-foreground pointer-events-none select-none"
-                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                      className="absolute right-4 text-xs text-muted-foreground pointer-events-none select-none font-mono"
                       aria-hidden="true"
                     >
                       ↵
@@ -340,13 +357,7 @@ function GameInner() {
 
                   {state.searchResults.length > 0 && (
                     <div
-                      className="absolute left-0 right-0 mt-2 overflow-hidden z-30"
-                      style={{
-                        background: '#0D1B2A',
-                        border: '1px solid rgba(27,58,75,0.9)',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                      }}
+                      className="absolute left-0 right-0 mt-2 overflow-hidden z-30 bg-card border border-border/40 rounded-xl shadow-lg"
                       role="listbox"
                       aria-label="Sugerencias de países"
                     >
@@ -357,20 +368,16 @@ function GameInner() {
                           role="option"
                           aria-selected={i === state.selectedIndex}
                           onMouseDown={() => trySubmit(c)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                          style={{
-                            background: i === state.selectedIndex ? 'rgba(0,212,255,0.15)' : 'transparent',
-                            borderBottom:
-                              i < state.searchResults.length - 1 ? '1px solid rgba(27,58,75,0.4)' : 'none',
-                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                            i === state.selectedIndex ? 'bg-primary/10' : 'hover:bg-card/50'
+                          } ${i < state.searchResults.length - 1 ? 'border-b border-border/20' : ''}`}
                         >
                           <span className="text-xl leading-none" aria-hidden="true">
                             {c.flag_emoji}
                           </span>
                           <span className="font-semibold text-sm text-foreground flex-1">{c.name}</span>
                           <span
-                            className="text-xs text-muted-foreground"
-                            style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                            className="text-xs text-muted-foreground font-mono"
                           >
                             {c.continent}
                           </span>
@@ -387,9 +394,9 @@ function GameInner() {
                 <div className="flex flex-col gap-2 flex-1" role="list" aria-label="Historial de intentos">
                   {sortedGuesses.length === 0 && (
                     <div className="flex flex-col items-center justify-center flex-1 py-10 text-center gap-2">
-                      <p className="text-foreground/60 text-sm">Empieza escribiendo un país arriba</p>
-                      <p className="text-muted-foreground text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        Te daremos pistas de distancia y dirección
+                      <p className="text-foreground/60 text-sm">{t('startWriting')}</p>
+                      <p className="text-muted-foreground text-xs font-mono">
+                        {t('hintsInfo')}
                       </p>
                     </div>
                   )}
@@ -407,14 +414,13 @@ function GameInner() {
                     <button
                       type="button"
                       onClick={() => setModalDismissed(false)}
-                      className="px-5 py-2 rounded-lg font-semibold text-sm transition-colors"
-                      style={{
-                        background: state.gameStatus === 'won' ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)',
-                        border: `1px solid ${state.gameStatus === 'won' ? '#4CAF5040' : '#F4433640'}`,
-                        color: '#E8F4F8',
-                      }}
+                      className={`px-5 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        state.gameStatus === 'won' 
+                          ? 'bg-green-500/10 border border-green-500/40 text-green-400' 
+                          : 'bg-red-500/10 border border-red-500/40 text-red-400'
+                      }`}
                     >
-                      Ver resultado
+                      {t('seeResult')}
                     </button>
                   </div>
                 )}
@@ -425,16 +431,15 @@ function GameInner() {
                       <button
                         type="button"
                         onClick={() => setShowConfirmGiveUp(true)}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/60 transition-colors"
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/60 transition-colors font-mono"
                       >
                         <Flag className="w-3.5 h-3.5" />
-                        Rendirse
+                        {t('giveUp')}
                       </button>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          ¿Seguro?
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {t('sure')}
                         </span>
                         <button
                           type="button"
@@ -442,18 +447,16 @@ function GameInner() {
                             void giveUp()
                             setShowConfirmGiveUp(false)
                           }}
-                          className="text-xs font-bold transition-colors"
-                          style={{ color: '#F44336', fontFamily: 'JetBrains Mono, monospace' }}
+                          className="text-xs font-bold text-red-500 transition-colors font-mono"
                         >
-                          Sí, rendirse
+                          {t('yesGiveUp')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowConfirmGiveUp(false)}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
                         >
-                          Cancelar
+                          {t('cancel')}
                         </button>
                       </div>
                     )}

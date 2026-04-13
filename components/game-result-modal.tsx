@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { X, Globe2, Trophy } from 'lucide-react'
 import type { GameStatus } from '@/hooks/use-game-state'
 import type { GuessResult, CountryData } from '@/lib/game-logic'
+import { useLanguage } from '@/hooks/use-language'
 
 const MONO = 'JetBrains Mono, monospace'
 const HEADING = 'Space Grotesk, Inter, sans-serif'
@@ -68,13 +69,14 @@ export default function GameResultModal({
   onClose,
 }: Props) {
   const router = useRouter()
+  const { language } = useLanguage()
   const countdown = useCountdown()
   const [copied, setCopied] = useState(false)
 
   const attemptsLabel =
     Number.isFinite(maxAttemptsDisplay) && maxAttemptsDisplay > 0 && maxAttemptsDisplay !== Number.POSITIVE_INFINITY
       ? `${attemptsUsed}/${maxAttemptsDisplay}`
-      : `${attemptsUsed} intentos`
+      : `${attemptsUsed} ${language === 'es' ? 'intentos' : 'attempts'}`
 
   const shareText = [
     `GeoBlind #${dailyDayNumber} 🌍`,
@@ -86,8 +88,10 @@ export default function GameResultModal({
       if (color === '#2D6A4F') return '🟤'
       return '🔵'
     }).join(''),
-    status === 'won' ? `Lo conseguí en ${attemptsLabel}` : `No lo conseguí hoy`,
-    `Juega en geoblind.com`,
+    status === 'won' 
+      ? (language === 'es' ? `Lo conseguí en ${attemptsLabel}` : `Got it in ${attemptsLabel}`)
+      : (language === 'es' ? `No lo conseguí hoy` : `Didn't get it today`),
+    language === 'es' ? 'Juega en geoblind.com' : 'Play at geoblind.com',
   ].join('\n')
 
   const handleCopy = useCallback(async () => {
@@ -125,7 +129,7 @@ export default function GameResultModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={won ? 'Resultado: ganaste' : 'Resultado: perdiste'}
+      aria-label={won ? (language === 'es' ? 'Resultado: ganaste' : 'Result: you won') : (language === 'es' ? 'Resultado: perdiste' : 'Result: you lost')}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
         position: 'fixed',
@@ -158,7 +162,7 @@ export default function GameResultModal({
         {/* Close button */}
         <button
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={language === 'es' ? 'Cerrar' : 'Close'}
           style={{
             position: 'absolute',
             top: 16,
@@ -212,10 +216,10 @@ export default function GameResultModal({
               margin: 0,
               lineHeight: 1.2,
             }}>
-              {won ? '¡Lo conseguiste!' : '¡Casi lo tienes!'}
+              {won ? (language === 'es' ? '¡Lo conseguiste!' : 'You got it!') : (language === 'es' ? '¡Casi lo tienes!' : 'So close!')}
             </h2>
             <p style={{ color: '#8BA4B0', fontSize: 15, marginTop: 6 }}>
-              {won ? 'Encontraste el país misterioso' : 'El país misterioso era...'}
+              {won ? (language === 'es' ? 'Encontraste el país misterioso' : 'You found the mystery country') : (language === 'es' ? 'El país misterioso era...' : 'The mystery country was...')}
             </p>
           </div>
 
@@ -262,7 +266,10 @@ export default function GameResultModal({
                 margin: 0,
                 lineHeight: 1.5,
               }}>
-                {target.name} es conocida por su rica historia, diversidad cultural y su posición estratégica en el mapa mundial.
+                {language === 'es' 
+                  ? `${target.name} es conocida por su rica historia, diversidad cultural y su posición estratégica en el mapa mundial.`
+                  : `${target.name} is known for its rich history, cultural diversity and strategic position on the world map.`
+                }
               </p>
             </div>
           )}
@@ -276,10 +283,10 @@ export default function GameResultModal({
               marginBottom: 20,
             }}>
               {[
-                { label: 'Intentos', value: attemptsLabel },
-                { label: 'Tiempo', value: stats.time },
-                { label: 'Puntuación', value: stats.score.toLocaleString() },
-                { label: 'Racha', value: stats.streak },
+                { label: language === 'es' ? 'Intentos' : 'Attempts', value: attemptsLabel },
+                { label: language === 'es' ? 'Tiempo' : 'Time', value: stats.time },
+                { label: language === 'es' ? 'Puntuación' : 'Score', value: stats.score.toLocaleString() },
+                { label: language === 'es' ? 'Racha' : 'Streak', value: stats.streak },
               ].map(stat => (
                 <div key={stat.label} style={{
                   background: 'rgba(27, 58, 75, 0.5)',
