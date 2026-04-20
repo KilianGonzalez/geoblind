@@ -7,6 +7,9 @@ import {
 } from '@/lib/game-logic'
 import type { GuessResult } from '@/lib/game-logic'
 
+const COUNTRY_SELECT =
+  'id, name, iso_code, lat, lng, continent, region, neighbor_codes, population, area_km2, flag_emoji'
+
 async function getGameModeId(slug: GameMode): Promise<string> {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -14,27 +17,12 @@ async function getGameModeId(slug: GameMode): Promise<string> {
     .select('id')
     .eq('slug', slug)
     .single()
-  
+
   if (error) {
     throw new Error(`Failed to get game mode ID for ${slug}: ${error.message}`)
   }
-  
-  return data.id
-}
 
-async function getGameModeSlug(id: string): Promise<GameMode> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('game_modes')
-    .select('slug')
-    .eq('id', id)
-    .single()
-  
-  if (error) {
-    throw new Error(`Failed to get game mode slug for ${id}: ${error.message}`)
-  }
-  
-  return data.slug as GameMode
+  return data.id
 }
 
 export interface GuessInsertResult {
@@ -56,7 +44,7 @@ export async function createGameSession(data: {
 }): Promise<GameSessionRow> {
   const supabase = createClient()
   const gameModeId = await getGameModeId(data.gameMode)
-  
+
   const { data: row, error } = await supabase
     .from('game_sessions')
     .insert({
@@ -155,7 +143,7 @@ export async function getCompletedDailySessionForProfile(params: {
   start.setHours(0, 0, 0, 0)
   const end = new Date()
   end.setHours(23, 59, 59, 999)
-  
+
   const gameModeId = await getGameModeId(params.gameMode)
 
   const { data, error } = await supabase
@@ -167,9 +155,9 @@ export async function getCompletedDailySessionForProfile(params: {
     .eq('profile_id', params.profileId)
     .eq('game_mode_id', gameModeId)
     .eq('completed', true)
-    .gte('created_at', start.toISOString())
-    .lte('created_at', end.toISOString())
-    .order('created_at', { ascending: false })
+    .gte('played_at', start.toISOString())
+    .lte('played_at', end.toISOString())
+    .order('played_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
@@ -179,6 +167,7 @@ export async function getCompletedDailySessionForProfile(params: {
     }
     throw new Error(error.message)
   }
+
   if (!data) return null
   return mapSessionRow(data as Record<string, unknown>)
 }
@@ -200,6 +189,7 @@ export async function getSessionById(sessionId: string): Promise<GameSessionRow 
     }
     throw new Error(error.message)
   }
+
   if (!data) return null
   return mapSessionRow(data as Record<string, unknown>)
 }
@@ -211,15 +201,13 @@ export async function getGuessesForSessionWithCountries(
   const supabase = createClient()
   const { data, error } = await supabase
     .from('guesses')
-    .select(
-      `
+    .select(`
       attempt_number,
       distance_km,
       direction,
       proximity_pct,
-      countries (id, name, iso_code, lat, lng, continent, region, subregion, neighbor_codes, population, area_km2, flag_emoji, difficulty_tier)
-    `
-    )
+      countries (${COUNTRY_SELECT})
+    `)
     .eq('session_id', sessionId)
     .order('attempt_number', { ascending: true })
 
@@ -241,17 +229,15 @@ export async function getGuessesForSessionWithCountries(
       proximity_pct: number
       countries: Record<string, unknown> | Record<string, unknown>[] | null
     }
+
     const countryRaw = Array.isArray(r.countries) ? r.countries[0] : r.countries
     if (!countryRaw) continue
+
     const guessed = mapCountryRow(countryRaw)
-    const bearing = calculateBearingDegrees(
-      guessed.lat,
-      guessed.lng,
-      target.lat,
-      target.lng
-    )
+    const bearing = calculateBearingDegrees(guessed.lat, guessed.lng, target.lat, target.lng)
     const proximityPct = Number(r.proximity_pct)
     const isCorrect = proximityPct === 100 || guessed.id === target.id
+
     results.push({
       country: countryToCountryData(guessed),
       distance: Math.round(Number(r.distance_km)),
@@ -269,7 +255,7 @@ export async function getGuessesForSessionWithCountries(
 function mapSessionRow(row: Record<string, unknown>): GameSessionRow {
   const gameModeData = row.game_modes as { slug: string } | { slug: string }[] | null
   const gameMode = Array.isArray(gameModeData) ? gameModeData[0]?.slug : gameModeData?.slug
-  
+
   return {
     id: String(row.id),
     game_mode: gameMode as GameMode,
@@ -282,7 +268,7 @@ function mapSessionRow(row: Record<string, unknown>): GameSessionRow {
     attempts_used: Number(row.attempts_used ?? 0),
     time_elapsed_sec: Number(row.time_elapsed_sec ?? 0),
     score: Number(row.score ?? 0),
-    created_at: String(row.created_at),
+    played_at: String(row.played_at),
   }
 }
 
@@ -307,11 +293,9 @@ function mapCountryRow(row: Record<string, unknown>): Country {
     lng: Number(row.lng),
     continent: String(row.continent),
     region: String(row.region),
-    subregion: row.subregion != null ? String(row.subregion) : null,
     neighbor_codes: row.neighbor_codes != null ? (row.neighbor_codes as string[]) : [],
     population: row.population != null ? Number(row.population) : null,
     area_km2: row.area_km2 != null ? Number(row.area_km2) : null,
-    flag_emoji: String(row.flag_emoji ?? '🏳️'),
-    difficulty_tier: (row.difficulty_tier as Country['difficulty_tier']) ?? null,
+    flag_emoji: String(row.flag_emoji ?? '??'),
   }
 }

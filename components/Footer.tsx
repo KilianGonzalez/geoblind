@@ -5,7 +5,7 @@ import { Globe } from 'lucide-react'
 import { useLanguage } from '@/hooks/use-language'
 
 export default function Footer() {
-  const { language, t } = useLanguage()
+  const { t } = useLanguage()
 
   return (
     <footer className="border-t border-border/40 mt-16 py-12">
@@ -17,21 +17,18 @@ export default function Footer() {
               <span className="font-bold text-lg text-foreground">GeoBlind</span>
             </div>
             <p className="text-foreground/60 text-sm">
-              {language === 'es' 
-                ? 'El juego de geografía diario que desafía tu conocimiento del mundo.'
-                : 'The daily geography game that challenges your world knowledge.'
-              }
+              El juego de geografía diario que desafía tu conocimiento del mundo.
             </p>
           </div>
           
           <div>
             <h3 className="font-semibold text-foreground mb-4">
-              {language === 'es' ? 'Juego' : 'Game'}
+              Juego
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/game" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Jugar Ahora' : 'Play Now'}
+                  Jugar Ahora
                 </Link>
               </li>
               <li>
@@ -41,7 +38,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/ranking" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Ranking Global' : 'Global Ranking'}
+                  Ranking Global
                 </Link>
               </li>
             </ul>
@@ -49,7 +46,7 @@ export default function Footer() {
           
           <div>
             <h3 className="font-semibold text-foreground mb-4">
-              {language === 'es' ? 'Cuenta' : 'Account'}
+              Cuenta
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
@@ -59,12 +56,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/profile" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Mi Perfil' : 'My Profile'}
+                  Mi Perfil
                 </Link>
               </li>
               <li>
                 <Link href="/settings" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Configuración' : 'Settings'}
+                  Configuración
                 </Link>
               </li>
             </ul>
@@ -72,17 +69,17 @@ export default function Footer() {
           
           <div>
             <h3 className="font-semibold text-foreground mb-4">
-              {language === 'es' ? 'Más' : 'More'}
+              Más
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/about" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Sobre Nosotros' : 'About Us'}
+                  Sobre Nosotros
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="text-foreground/60 hover:text-primary transition-colors">
-                  {language === 'es' ? 'Contacto' : 'Contact'}
+                  Contacto
                 </Link>
               </li>
             </ul>
@@ -91,10 +88,7 @@ export default function Footer() {
         
         <div className="border-t border-border/40 pt-8 text-center text-foreground/60 text-sm">
           <p>
-            {language === 'es' 
-              ? '© 2024 GeoBlind. Un juego de geografía diario. Hecho con'
-              : '© 2024 GeoBlind. A daily geography game. Made with'
-            }{' '}
+            © 2024 GeoBlind. Un juego de geografía diario. Hecho con{' '}
             <span className="text-red-500">red</span>
           </p>
         </div>

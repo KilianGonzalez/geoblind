@@ -3,20 +3,40 @@ import type { RankingEntry } from '@/lib/types'
 
 const RANKING_SELECT = `
   profile_id,
+  game_mode_id,
   total_score,
   games_played,
-  win_rate,
+  games_won,
+  avg_attempts,
   current_streak,
   best_streak,
   profiles ( username )
 `
 
+const MODE_RANKING_SELECT = `
+  profile_id,
+  total_score,
+  games_played,
+  games_won,
+  avg_attempts,
+  current_streak,
+  best_streak,
+  profiles ( username ),
+  game_modes!inner ( slug )
+`
+
 type ProfileJoin = { username: string | null } | { username: string | null }[] | null
 
-function normalizeWinRate(raw: unknown): number {
-  const n = Number(raw ?? 0)
-  if (n <= 1 && n >= 0) return Math.round(n * 100)
-  return Math.round(n)
+type RankingRow = {
+  profile_id: string
+  game_mode_id?: string
+  total_score: number | null
+  games_played: number | null
+  games_won: number | null
+  avg_attempts: number | null
+  current_streak: number | null
+  best_streak: number | null
+  profiles: ProfileJoin
 }
 
 function profileUsername(profiles: ProfileJoin): string {
@@ -25,58 +45,103 @@ function profileUsername(profiles: ProfileJoin): string {
   return p?.username?.trim() || 'Jugador'
 }
 
-function mapRankingRows(data: Record<string, unknown>[]): RankingEntry[] {
-  return data.map((row, i) => ({
-    rank: i + 1,
-    profileId: String(row.profile_id),
-    username: profileUsername(row.profiles as ProfileJoin),
-    totalScore: Number(row.total_score ?? 0),
-    gamesPlayed: Number(row.games_played ?? 0),
-    winRate: normalizeWinRate(row.win_rate),
-    currentStreak: Number(row.current_streak ?? 0),
-    bestStreak: Number(row.best_streak ?? 0),
-  }))
+function computeWinRate(gamesPlayed: number, gamesWon: number): number {
+  if (gamesPlayed <= 0) return 0
+  return Math.round((gamesWon / gamesPlayed) * 100)
 }
 
-export async function getGlobalRanking(limit = 50): Promise<RankingEntry[]> {
+function mapModeRankingRows(data: RankingRow[]): RankingEntry[] {
+  return data.map((row, i) => {
+    const gamesPlayed = Number(row.games_played ?? 0)
+    const gamesWon = Number(row.games_won ?? 0)
+
+    return {
+      rank: i + 1,
+      profileId: String(row.profile_id),
+      username: profileUsername(row.profiles),
+      totalScore: Number(row.total_score ?? 0),
+      gamesPlayed,
+      winRate: computeWinRate(gamesPlayed, gamesWon),
+      currentStreak: Number(row.current_streak ?? 0),
+      bestStreak: Number(row.best_streak ?? 0),
+    }
+  })
+}
+
+function aggregateGlobalRankingRows(data: RankingRow[]): RankingEntry[] {
+  const byProfile = new Map<string, RankingEntry & { gamesWon: number }>()
+
+  for (const row of data) {
+    const profileId = String(row.profile_id)
+    const current = byProfile.get(profileId)
+    const gamesPlayed = Number(row.games_played ?? 0)
+    const gamesWon = Number(row.games_won ?? 0)
+
+    if (current) {
+      current.totalScore += Number(row.total_score ?? 0)
+      current.gamesPlayed += gamesPlayed
+      current.gamesWon += gamesWon
+      current.currentStreak = Math.max(current.currentStreak, Number(row.current_streak ?? 0))
+      current.bestStreak = Math.max(current.bestStreak, Number(row.best_streak ?? 0))
+      continue
+    }
+
+    byProfile.set(profileId, {
+      rank: 0,
+      profileId,
+      username: profileUsername(row.profiles),
+      totalScore: Number(row.total_score ?? 0),
+      gamesPlayed,
+      winRate: 0,
+      currentStreak: Number(row.current_streak ?? 0),
+      bestStreak: Number(row.best_streak ?? 0),
+      gamesWon,
+    })
+  }
+
+  return [...byProfile.values()]
+    .map(entry => ({
+      rank: 0,
+      profileId: entry.profileId,
+      username: entry.username,
+      totalScore: entry.totalScore,
+      gamesPlayed: entry.gamesPlayed,
+      winRate: computeWinRate(entry.gamesPlayed, entry.gamesWon),
+      currentStreak: entry.currentStreak,
+      bestStreak: entry.bestStreak,
+    }))
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .map((entry, i) => ({ ...entry, rank: i + 1 }))
+}
+
+async function getAllRankingRows(): Promise<RankingRow[]> {
   const supabase = await createClient()
-  const withMode = await supabase
-    .from('rankings')
-    .select(`${RANKING_SELECT}, game_mode_slug`)
-    .is('game_mode_slug', null)
-    .order('total_score', { ascending: false })
-    .limit(limit)
-
-  if (!withMode.error) {
-    return mapRankingRows((withMode.data ?? []) as Record<string, unknown>[])
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[getGlobalRanking] fallback sin game_mode_slug:', withMode.error.message)
-  }
-
   const { data, error } = await supabase
     .from('rankings')
     .select(RANKING_SELECT)
     .order('total_score', { ascending: false })
-    .limit(limit)
 
   if (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[getGlobalRanking]', error.message)
+      console.log('[getAllRankingRows]', error.message)
     }
     throw new Error(error.message)
   }
 
-  return mapRankingRows((data ?? []) as Record<string, unknown>[])
+  return (data ?? []) as RankingRow[]
+}
+
+export async function getGlobalRanking(limit = 50): Promise<RankingEntry[]> {
+  const rows = await getAllRankingRows()
+  return aggregateGlobalRankingRows(rows).slice(0, limit)
 }
 
 export async function getRankingByMode(gameModeSlug: string, limit = 50): Promise<RankingEntry[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('rankings')
-    .select(`${RANKING_SELECT}, game_mode_slug`)
-    .eq('game_mode_slug', gameModeSlug)
+    .select(MODE_RANKING_SELECT)
+    .eq('game_modes.slug', gameModeSlug)
     .order('total_score', { ascending: false })
     .limit(limit)
 
@@ -87,68 +152,11 @@ export async function getRankingByMode(gameModeSlug: string, limit = 50): Promis
     throw new Error(error.message)
   }
 
-  return mapRankingRows((data ?? []) as Record<string, unknown>[])
+  return mapModeRankingRows((data ?? []) as RankingRow[])
 }
 
 export async function getUserRanking(profileId: string): Promise<RankingEntry | null> {
-  const supabase = await createClient()
-  let data: Record<string, unknown> | null = null
-
-  const filtered = await supabase
-    .from('rankings')
-    .select(`${RANKING_SELECT}, game_mode_slug`)
-    .eq('profile_id', profileId)
-    .is('game_mode_slug', null)
-    .maybeSingle()
-
-  if (!filtered.error && filtered.data) {
-    data = filtered.data as Record<string, unknown>
-  } else {
-    if (process.env.NODE_ENV === 'development' && filtered.error) {
-      console.log('[getUserRanking] fallback sin filtro de modo:', filtered.error.message)
-    }
-    const fb = await supabase.from('rankings').select(RANKING_SELECT).eq('profile_id', profileId).maybeSingle()
-    if (fb.error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[getUserRanking]', fb.error.message)
-      }
-      throw new Error(fb.error.message)
-    }
-    data = fb.data as Record<string, unknown> | null
-  }
-
-  if (!data) return null
-
-  const score = Number(data.total_score ?? 0)
-  let count: number | null = null
-  const countFiltered = await supabase
-    .from('rankings')
-    .select('*', { count: 'exact', head: true })
-    .is('game_mode_slug', null)
-    .gt('total_score', score)
-
-  if (!countFiltered.error) {
-    count = countFiltered.count
-  } else {
-    const countFb = await supabase
-      .from('rankings')
-      .select('*', { count: 'exact', head: true })
-      .gt('total_score', score)
-    if (!countFb.error) count = countFb.count
-    else if (process.env.NODE_ENV === 'development') {
-      console.log('[getUserRanking] count', countFb.error.message)
-    }
-  }
-
-  const rank = (count ?? 0) + 1
-  return {
-    rank,
-    profileId: String(data.profile_id),
-    username: profileUsername(data.profiles as ProfileJoin),
-    totalScore: Number(data.total_score ?? 0),
-    gamesPlayed: Number(data.games_played ?? 0),
-    winRate: normalizeWinRate(data.win_rate),
-    currentStreak: Number(data.current_streak ?? 0),
-    bestStreak: Number(data.best_streak ?? 0),
-  }
+  const rows = await getAllRankingRows()
+  const aggregated = aggregateGlobalRankingRows(rows)
+  return aggregated.find(entry => entry.profileId === profileId) ?? null
 }

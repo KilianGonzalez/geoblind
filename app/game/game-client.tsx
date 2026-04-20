@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Globe, Search, Flag, Sun, Moon, ChevronDown } from 'lucide-react'
+import { Globe, Search, Flag, Sun, Moon } from 'lucide-react'
 import { useGameState, parseGameModeParam } from '@/hooks/use-game-state'
 import { useAuthUser } from '@/hooks/use-auth-user'
 import { useTheme } from '@/hooks/use-theme'
@@ -24,12 +24,12 @@ const MODE_TABS: { id: string; color: string }[] = [
   { id: 'hard', color: '#EF4444' },
 ]
 
-const getModeLabels = (lang: 'es' | 'en') => ({
-  daily: lang === 'es' ? 'MODO DIARIO' : 'DAILY MODE',
-  infinite: lang === 'es' ? 'MODO INFINITO' : 'INFINITE MODE',
-  region: lang === 'es' ? 'MODO REGIÓN' : 'REGION MODE',
-  timed: lang === 'es' ? 'CONTRARRELOJ' : 'TIMED MODE',
-  hard: lang === 'es' ? 'MODO DIFÍCIL' : 'HARD MODE',
+const getModeLabels = () => ({
+  daily: 'MODO DIARIO',
+  infinite: 'MODO INFINITO',
+  region: 'MODO REGIÓN',
+  timed: 'CONTRARRELOJ',
+  hard: 'MODO DIFÍCIL',
 })
 
 function dayOfYear(d: Date): number {
@@ -52,8 +52,7 @@ function GameNavbar({
 }) {
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
-  const { language, changeLanguage, t, getLanguageFlag, getLanguageName } = useLanguage()
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+  const { t } = useLanguage()
 
   const modeLabels = {
     daily: t('daily'),
@@ -70,7 +69,7 @@ function GameNavbar({
         <span className="font-bold text-base text-foreground">GeoBlind</span>
       </Link>
 
-      <nav className="hidden md:flex items-center gap-1" aria-label={language === 'es' ? 'Modos de juego' : 'Game Modes'}>
+      <nav className="hidden md:flex items-center gap-1" aria-label="Modos de juego">
         {MODE_TABS.map(m => (
           <button
             key={m.id}
@@ -96,39 +95,6 @@ function GameNavbar({
       </nav>
 
       <div className="flex items-center gap-3">
-        {/* Language Selector */}
-        <div className="relative">
-          <button
-            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            title="Idioma"
-          >
-            <span className="text-lg">??</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
-
-          {showLanguageDropdown && (
-            <div className="absolute right-0 top-full mt-1 p-2 rounded-lg border border-border/40 bg-card shadow-lg z-50">
-              <button
-                onClick={() => { changeLanguage('es'); setShowLanguageDropdown(false) }}
-                className={`w-full text-left px-3 py-2 rounded hover:bg-card/50 transition-colors text-sm ${
-                  language === 'es' ? 'text-primary font-medium' : 'text-foreground'
-                }`}
-              >
-                ?? Español
-              </button>
-              <button
-                onClick={() => { changeLanguage('en'); setShowLanguageDropdown(false) }}
-                className={`w-full text-left px-3 py-2 rounded hover:bg-card/50 transition-colors text-sm ${
-                  language === 'en' ? 'text-primary font-medium' : 'text-foreground'
-                }`}
-              >
-                ?? English
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
@@ -154,7 +120,7 @@ function GameNavbar({
             href="/auth"
             className="px-3 py-1.5 text-sm font-medium border border-border rounded-md hover:bg-card transition-colors"
           >
-            {language === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+            Iniciar Sesión
           </Link>
         )}
       </div>
@@ -169,7 +135,7 @@ function GameInner() {
 
   const [globeGuesses, setGlobeGuesses] = useState<GuessResult[]>([])
   const { user, loading: authLoading } = useAuthUser()
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const { state, initGame, submitGuess, updateSearch, navigateResults, clearSearch, giveUp } = useGameState({
     onGuessesChange: setGlobeGuesses,
   })
@@ -275,7 +241,7 @@ function GameInner() {
                   <span
                     className="px-3 py-1 rounded-full text-xs font-bold tracking-widest bg-primary/10 border border-primary/40 text-primary font-mono"
                   >
-                    {getModeLabels(language)[state.mode] ?? state.mode} · {t('day')} {dayNum}
+                    {getModeLabels()[state.mode] ?? state.mode} · {t('day')} {dayNum}
                   </span>
                 </div>
 
@@ -405,6 +371,8 @@ function GameInner() {
                       key={`${g.attemptNumber}-${g.country.id}`}
                       result={g}
                       isNew={flashAttempt != null && g.attemptNumber === flashAttempt}
+                      showDirection={state.showDirection}
+                      showColorHints={state.showColorHints}
                     />
                   ))}
                 </div>

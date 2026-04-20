@@ -16,8 +16,8 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, user_id, username, avatar_url')
-    .eq('user_id', userId)
+    .select('id, username, avatar_url')
+    .eq('id', userId)
     .maybeSingle()
 
   if (error || !data) {
@@ -29,7 +29,6 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
 
   return {
     id: String(data.id),
-    user_id: String(data.user_id),
     username: data.username ?? null,
     avatar_url: data.avatar_url ?? null,
   }

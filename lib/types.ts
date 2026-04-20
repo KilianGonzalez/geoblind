@@ -13,12 +13,10 @@ export interface Country {
   lng: number
   continent: string
   region: string
-  subregion: string | null
   neighbor_codes: string[]
   population: number | null
   area_km2: number | null
   flag_emoji: string
-  difficulty_tier: 'standard' | 'extended'
 }
 
 export type GameMode = 'daily' | 'infinite' | 'region' | 'timed' | 'hard'
@@ -34,7 +32,6 @@ export interface GameState {
 
 export interface Profile {
   id: string
-  user_id: string
   username: string | null
   avatar_url: string | null
 }
@@ -51,7 +48,7 @@ export interface GameSessionRow {
   attempts_used: number
   time_elapsed_sec: number
   score: number
-  created_at: string
+  played_at: string
 }
 
 export interface GuessRow {

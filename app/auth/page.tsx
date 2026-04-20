@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -11,33 +10,49 @@ import { Label } from '@/components/ui/label'
 import { ButtonGroup } from '@/components/ui/button-group'
 import { useLanguage } from '@/hooks/use-language'
 
+function formatRegisterError(message: string): string {
+  if (message.includes('Database error saving new user')) {
+    return 'El registro falla en Supabase porque el trigger que crea perfiles no coincide con la tabla actual. Ejecuta el SQL de `supabase/fixes/2026-04-20-fix-signup-profile-trigger.sql` y vuelve a intentarlo.'
+  }
+
+  return message
+}
+
 export default function AuthPage() {
-  const { language, t } = useLanguage()
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-  const [registerForm, setRegisterForm] = useState({ username: '', email: '', password: '' })
+  const [registerForm, setRegisterForm] = useState({
+    email: '',
+    password: '',
+    username: '',
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
+  const [message, setMessage] = useState('')
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    setMessage('')
+    setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       })
 
       if (error) {
         setError(error.message)
-      } else {
-        router.push('/game')
+      } else if (data.user) {
+        setMessage(t('loginSuccess'))
+        setTimeout(() => {
+          window.location.href = '/game'
+        }, 1500)
       }
-    } catch (err) {
+    } catch {
       setError(t('loginError'))
     } finally {
       setLoading(false)
@@ -46,24 +61,35 @@ export default function AuthPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    setMessage('')
+    setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: registerForm.email,
         password: registerForm.password,
         options: {
-          data: { username: registerForm.username }
-        }
+          data: {
+            username: registerForm.username,
+          },
+        },
       })
 
       if (error) {
-        setError(error.message)
-      } else {
-        router.push('/game')
+        setError(formatRegisterError(error.message))
+      } else if (data.user) {
+        if (data.session) {
+          setMessage(t('registerSuccess'))
+          setTimeout(() => {
+            window.location.href = '/game'
+          }, 1500)
+          return
+        }
+
+        setMessage('Cuenta creada. Revisa tu correo para confirmar el registro antes de iniciar sesion.')
       }
-    } catch (err) {
+    } catch {
       setError(t('registerError'))
     } finally {
       setLoading(false)
@@ -75,7 +101,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md p-6">
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <Link 
+            <Link
               href="/"
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -84,7 +110,7 @@ export default function AuthPage() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">GeoBlind</h1>
-          <p className="text-muted-foreground">{language === 'es' ? 'El juego de geografía diario' : 'The daily geography game'}</p>
+          <p className="text-muted-foreground">El juego de geografia diario</p>
         </div>
 
         <ButtonGroup className="w-full mb-6">
@@ -111,9 +137,9 @@ export default function AuthPage() {
               <Input
                 id="login-email"
                 type="email"
-                placeholder={language === 'es' ? 'tu@email.com' : 'your@email.com'}
+                placeholder="tu@email.com"
                 value={loginForm.email}
-                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
                 required
                 disabled={loading}
               />
@@ -123,9 +149,9 @@ export default function AuthPage() {
               <Input
                 id="login-password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="********"
                 value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
                 required
                 disabled={loading}
               />
@@ -141,9 +167,9 @@ export default function AuthPage() {
               <Input
                 id="register-username"
                 type="text"
-                placeholder={language === 'es' ? 'jugador123' : 'player123'}
+                placeholder="jugador123"
                 value={registerForm.username}
-                onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                onChange={e => setRegisterForm({ ...registerForm, username: e.target.value })}
                 required
                 disabled={loading}
               />
@@ -153,9 +179,9 @@ export default function AuthPage() {
               <Input
                 id="register-email"
                 type="email"
-                placeholder={language === 'es' ? 'tu@email.com' : 'your@email.com'}
+                placeholder="tu@email.com"
                 value={registerForm.email}
-                onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
                 required
                 disabled={loading}
               />
@@ -165,9 +191,9 @@ export default function AuthPage() {
               <Input
                 id="register-password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="********"
                 value={registerForm.password}
-                onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
                 required
                 disabled={loading}
               />
@@ -181,6 +207,12 @@ export default function AuthPage() {
         {error && (
           <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
             <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {message && (
+          <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-md">
+            <p className="text-sm text-primary">{message}</p>
           </div>
         )}
       </div>

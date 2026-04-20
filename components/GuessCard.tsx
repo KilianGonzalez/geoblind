@@ -2,37 +2,41 @@
 
 import { useEffect, useRef } from 'react'
 import type { GuessResult } from '@/lib/game-logic'
-import { useLanguage } from '@/hooks/use-language'
-
 
 function proximityBg(pct: number): string {
   if (pct >= 100) return 'rgba(76, 175, 80, 0.5)'
-  if (pct >= 81)  return 'rgba(255, 107, 53, 0.4)'
-  if (pct >= 51)  return 'rgba(201, 168, 76, 0.3)'
-  if (pct >= 21)  return 'rgba(45, 106, 79, 0.5)'
+  if (pct >= 81) return 'rgba(255, 107, 53, 0.4)'
+  if (pct >= 51) return 'rgba(201, 168, 76, 0.3)'
+  if (pct >= 21) return 'rgba(45, 106, 79, 0.5)'
   return 'rgba(27, 58, 75, 0.8)'
 }
 
 function proximityBorder(pct: number): string {
   if (pct >= 100) return '#4CAF50'
-  if (pct >= 81)  return '#FF6B35'
-  if (pct >= 51)  return '#C9A84C'
-  if (pct >= 21)  return '#2D6A4F'
+  if (pct >= 81) return '#FF6B35'
+  if (pct >= 51) return '#C9A84C'
+  if (pct >= 21) return '#2D6A4F'
   return '#1B3A4B'
 }
 
 interface GuessCardProps {
   result: GuessResult
   isNew?: boolean
+  showDirection?: boolean
+  showColorHints?: boolean
 }
 
-export default function GuessCard({ result, isNew = false }: GuessCardProps) {
+export default function GuessCard({
+  result,
+  isNew = false,
+  showDirection = true,
+  showColorHints = true,
+}: GuessCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const { language } = useLanguage()
   const { country, distance, direction, proximityPct, isCorrect } = result
 
-  const bgColor = proximityBg(proximityPct)
-  const borderColor = proximityBorder(proximityPct)
+  const bgColor = showColorHints ? proximityBg(proximityPct) : 'rgba(27, 58, 75, 0.8)'
+  const borderColor = showColorHints ? proximityBorder(proximityPct) : 'rgba(0, 212, 255, 0.25)'
   const isFar = proximityPct < 20 && !isCorrect
 
   useEffect(() => {
@@ -73,7 +77,6 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
         boxShadow: isCorrect ? `0 0 16px ${borderColor}60` : undefined,
       }}
     >
-      {/* Green glow border animation on correct */}
       {isCorrect && (
         <div
           className="absolute inset-0 rounded-xl pointer-events-none"
@@ -85,10 +88,11 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
       )}
 
       <div className="flex items-center gap-3 h-full">
-        {/* Flag + Name */}
         <div className="flex flex-col justify-center min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-2xl leading-none" aria-hidden="true">{country.flag_emoji}</span>
+            <span className="text-2xl leading-none" aria-hidden="true">
+              {country.flag_emoji}
+            </span>
             <span className="font-bold text-sm text-foreground truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
               {country.name}
             </span>
@@ -96,7 +100,6 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
           <span className="text-xs text-muted-foreground truncate mt-0.5">{country.continent}</span>
         </div>
 
-        {/* Distance + Proximity bar */}
         <div className="flex flex-col items-center gap-1 min-w-[90px]">
           <span
             className="text-sm font-bold text-foreground tabular-nums"
@@ -104,30 +107,32 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
           >
             {distance.toLocaleString('es-ES')} km
           </span>
-          {/* Proximity bar */}
           <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
-                width: `${proximityPct}%`,
-                background: 'linear-gradient(to right, #1E6091, #C9A84C, #FF6B35, #4CAF50)',
-                backgroundSize: '400%',
-                backgroundPosition: `${100 - proximityPct}% center`,
+                width: `${showColorHints ? proximityPct : 100}%`,
+                background: showColorHints
+                  ? 'linear-gradient(to right, #1E6091, #C9A84C, #FF6B35, #4CAF50)'
+                  : 'rgba(255,255,255,0.18)',
+                backgroundSize: showColorHints ? '400%' : undefined,
+                backgroundPosition: showColorHints ? `${100 - proximityPct}% center` : undefined,
               }}
             />
           </div>
         </div>
 
-        {/* Direction or Correct indicator */}
         <div className="flex flex-col items-center justify-center min-w-[40px]">
           {isCorrect ? (
             <>
-              <span className="text-2xl leading-none" aria-label={language === 'es' ? 'Correcto' : 'Correct'}>??</span>
+              <span className="text-2xl leading-none" aria-label="Correcto">
+                OK
+              </span>
               <span
                 className="text-xs font-bold mt-0.5"
                 style={{ color: '#4CAF50', fontFamily: 'JetBrains Mono, monospace' }}
               >
-                {language === 'es' ? 'Correcto!' : 'Correct!'}
+                Correcto!
               </span>
             </>
           ) : (
@@ -135,15 +140,15 @@ export default function GuessCard({ result, isNew = false }: GuessCardProps) {
               <span
                 className="text-xl leading-none font-bold"
                 style={{ color: '#00D4FF' }}
-                aria-label={`Dirección: ${direction.label}`}
+                aria-label={showDirection ? `Direccion: ${direction.label}` : 'Direccion oculta'}
               >
-                {direction.arrow}
+                {showDirection ? direction.arrow : '--'}
               </span>
               <span
                 className="text-xs text-muted-foreground mt-0.5"
                 style={{ fontFamily: 'JetBrains Mono, monospace' }}
               >
-                {direction.label}
+                {showDirection ? direction.label : 'Oculta'}
               </span>
             </>
           )}

@@ -3,271 +3,298 @@
 import Link from 'next/link'
 import { 
   Globe, 
-  MapPin, 
-  Compass, 
-  Thermometer, 
   Target, 
   Trophy, 
-  Users, 
-  ArrowLeft,
+  Zap, 
+  Shield, 
+  Star,
+  ArrowRight,
   CheckCircle,
-  XCircle,
-  Timer
+  Info,
+  Lightbulb
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import { useLanguage } from '@/hooks/use-language'
 
 export default function RulesPage() {
-  const { language, t } = useLanguage()
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-background via-card to-background">
-      {/* Header */}
-      <header className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link 
-            href="/"
-            className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>{t('back')}</span>
-          </Link>
-          
-          <div className="flex items-center gap-2">
-            <Globe className="w-8 h-8 text-primary" />
-            <span className="font-bold text-xl text-foreground">GeoBlind</span>
-          </div>
-        </div>
-      </header>
+  const { t } = useLanguage()
 
-      {/* Rules Content */}
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background via-card to-background">
+      <Navbar showBackButton={true} showModeTabs={false} showLoginButton={false} />
+
       <section className="max-w-4xl mx-auto px-4 py-16">
+        {/* Header */}
         <div className="text-center mb-12">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+            <Globe className="w-8 h-8 text-primary-foreground" />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            {t('howToPlay')}
+            Cómo Jugar
           </h1>
-          <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-            {t('rulesSubtitle')}
+          <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
+            Aprende las reglas y conviértete en un maestro de la geografía
           </p>
         </div>
 
-        {/* Game Objective */}
-        <div className="mb-16 p-8 rounded-2xl border border-border/40 bg-card/50">
-          <div className="flex items-start gap-4 mb-6">
-            <Target className="w-8 h-8 text-primary flex-shrink-0" />
+        {/* Objective */}
+        <div className="p-8 rounded-2xl border border-border/40 bg-gradient-to-r from-primary/10 to-primary/5 mb-12">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <Target className="w-6 h-6 text-primary" />
+            </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-4">{language === 'es' ? 'Objetivo del Juego' : 'Game Objective'}</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-3">Objetivo del Juego</h2>
               <p className="text-foreground/70 leading-relaxed">
-                {t('gameDescription')}
+                El objetivo de GeoBlind es adivinar el país misterioso usando las pistas de distancia, 
+                dirección y características geográficas que te proporcionamos después de cada intento. 
+                ¡Tienes un número limitado de intentos para encontrar la respuesta correcta!
               </p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <span className="font-bold text-primary">1</span>
-                </div>
-                <h3 className="font-semibold text-foreground">{language === 'es' ? 'Inicia el Juego' : 'Start Game'}</h3>
-              </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Comienza un nuevo juego y recibirás un país misterioso que debes adivinar.' : 'Start a new game and you will receive a mystery country that you must guess.'}
-              </p>
-            </div>
-
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <span className="font-bold text-primary">2</span>
-                </div>
-                <h3 className="font-semibold text-foreground">{t('makeFirstGuess')}</h3>
-              </div>
-              <p className="text-foreground/70 text-sm">
-                {t('makeFirstGuessDesc')}
-              </p>
-            </div>
-
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <span className="font-bold text-primary">3</span>
-                </div>
-                <h3 className="font-semibold text-foreground">{t('receiveHints')}</h3>
-              </div>
-              <p className="text-foreground/70 text-sm">
-                {t('receiveHintsDesc')}
-              </p>
-            </div>
-
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <span className="font-bold text-primary">4</span>
-                </div>
-                <h3 className="font-semibold text-foreground">{t('keepTrying')}</h3>
-              </div>
-              <p className="text-foreground/70 text-sm">
-                {t('keepTryingDesc')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Hint System */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold text-foreground mb-8 text-center">{language === 'es' ? 'Sistema de Pistas' : 'Hint System'}</h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/10 to-blue-600/5">
-              <MapPin className="w-8 h-8 text-blue-400 mb-4" />
-              <h3 className="font-semibold text-foreground mb-2">{t('distance')}</h3>
-              <p className="text-foreground/70 text-sm mb-3">
-                {t('distanceDesc')}
-              </p>
-              <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20">
-                <p className="font-mono text-sm text-blue-300">{t('distanceExample')}</p>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-xl border border-border/40 bg-gradient-to-br from-green-500/10 to-green-600/5">
-              <Compass className="w-8 h-8 text-green-400 mb-4" />
-              <h3 className="font-semibold text-foreground mb-2">{t('direction')}</h3>
-              <p className="text-foreground/70 text-sm mb-3">
-                {t('directionDesc')}
-              </p>
-              <div className="p-3 rounded bg-green-500/10 border border-green-500/20">
-                <p className="font-mono text-sm text-green-300">{t('directionExample')}</p>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-xl border border-border/40 bg-gradient-to-br from-orange-500/10 to-orange-600/5">
-              <Thermometer className="w-8 h-8 text-orange-400 mb-4" />
-              <h3 className="font-semibold text-foreground mb-2">{t('temperature')}</h3>
-              <p className="text-foreground/70 text-sm mb-3">
-                {t('temperatureDesc')}
-              </p>
-              <div className="p-3 rounded bg-orange-500/10 border border-orange-500/20">
-                <p className="font-mono text-sm text-orange-300">{t('temperatureExample')}</p>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Game Modes */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold text-foreground mb-8 text-center">{language === 'es' ? 'Modos de Juego' : 'Game Modes'}</h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+            <Zap className="w-6 h-6 text-primary" />
+            Modos de Juego
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
-                <h3 className="font-semibold text-foreground">{t('daily')}</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-green-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Modo Diario</h3>
               </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Un nuevo país cada día. Todos los jugadores compiten con el mismo misterio.' : 'A new country every day. All players compete with the same mystery.'}
-              </p>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Un nuevo país cada día</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>6 intentos para adivinar</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Ranking diario y global</span>
+                </li>
+              </ul>
             </div>
 
             <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                <h3 className="font-semibold text-foreground">{t('infinite')}</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-blue-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Modo Infinito</h3>
               </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Juga sin límites. Practica y mejora tus habilidades geográficas.' : 'Play without limits. Practice and improve your geography skills.'}
-              </p>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Juga sin límite de países</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>8 intentos por país</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span>Acumula puntos y experiencia</span>
+                </li>
+              </ul>
             </div>
 
             <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <h3 className="font-semibold text-foreground">{t('region')}</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Globe className="w-5 h-5 text-purple-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Modo Región</h3>
               </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Adivina países de una región específica: Europa, Asia, África, etc.' : 'Guess countries from a specific region: Europe, Asia, Africa, etc.'}
-              </p>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span>Enfócate en un continente</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span>7 intentos por país</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span>Domina cada región</span>
+                </li>
+              </ul>
             </div>
 
             <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <h3 className="font-semibold text-foreground">{t('timed')}</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Contrarreloj</h3>
               </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Adivina tantos países como puedas en un tiempo limitado.' : 'Guess as many countries as you can in a limited time.'}
-              </p>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <span>90 segundos para cada país</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <span>Intentos ilimitados</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <span>Mayor puntuación por rapidez</span>
+                </li>
+              </ul>
             </div>
 
             <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <h3 className="font-semibold text-foreground">{t('hard')}</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Modo Difícil</h3>
               </div>
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Menos intentos, pistas más vagas. Solo para expertos.' : 'Fewer attempts, vaguer hints. For experts only.'}
-              </p>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span>Solo 4 intentos por país</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span>Pistas de distancia más vagas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span>Puntos extra por dificultad</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Scoring */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold text-foreground mb-8 text-center">{language === 'es' ? 'Sistema de Puntuación' : 'Scoring System'}</h2>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                {language === 'es' ? 'Puntos por Intento' : 'Points per Attempt'}
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '1 intento' : '1 attempt'}</span>
-                  <span className="font-mono text-primary">1000 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '2 intentos' : '2 attempts'}</span>
-                  <span className="font-mono text-primary">800 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '3 intentos' : '3 attempts'}</span>
-                  <span className="font-mono text-primary">600 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '4 intentos' : '4 attempts'}</span>
-                  <span className="font-mono text-primary">400 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '5 intentos' : '5 attempts'}</span>
-                  <span className="font-mono text-primary">200 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? '6 intentos' : '6 attempts'}</span>
-                  <span className="font-mono text-primary">100 pts</span>
-                </div>
+        {/* How to Play */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+            <Lightbulb className="w-6 h-6 text-primary" />
+            Cómo Jugar Paso a Paso
+          </h2>
+          <div className="space-y-6">
+            <div className="flex gap-4 p-6 rounded-xl border border-border/40 bg-card/30">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Elige un Modo</h3>
+                <p className="text-foreground/70">
+                  Selecciona entre Diario, Infinito o Región según tu preferencia.
+                </p>
               </div>
             </div>
 
-            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Timer className="w-5 h-5 text-blue-500" />
-                {language === 'es' ? 'Bonificaciones' : 'Bonuses'}
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? 'Racha diaria' : 'Daily Streak'}</span>
-                  <span className="font-mono text-primary">+500 pts</span>
+            <div className="flex gap-4 p-6 rounded-xl border border-border/40 bg-card/30">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Escribe un País</h3>
+                <p className="text-foreground/70">
+                  Comienza a escribir el nombre de un país en el campo de búsqueda.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 p-6 rounded-xl border border-border/40 bg-card/30">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Analiza las Pistas</h3>
+                <p className="text-foreground/70">
+                  Después de cada intento, verás la distancia, dirección y características del país correcto.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 p-6 rounded-xl border border-border/40 bg-card/30">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                4
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Adivina y Gana</h3>
+                <p className="text-foreground/70">
+                  Usa las pistas para acercarte cada vez más al país correcto antes de que se acaben los intentos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scoring System */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-primary" />
+            Sistema de Puntuación
+          </h2>
+          <div className="p-6 rounded-xl border border-border/40 bg-card/30">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-semibold text-foreground mb-4">Puntos por Intento</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <span className="text-foreground font-medium">1er intento</span>
+                    <span className="text-green-500 font-bold">1000 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <span className="text-foreground font-medium">2do intento</span>
+                    <span className="text-blue-500 font-bold">800 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <span className="text-foreground font-medium">3er intento</span>
+                    <span className="text-yellow-500 font-bold">600 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <span className="text-foreground font-medium">4to intento</span>
+                    <span className="text-orange-500 font-bold">400 pts</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <span className="text-foreground font-medium">5to intento</span>
+                    <span className="text-red-500 font-bold">200 pts</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? 'Perfecto (1/1)' : 'Perfect (1/1)'}</span>
-                  <span className="font-mono text-primary">+200 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? 'Modo difícil' : 'Hard Mode'}</span>
-                  <span className="font-mono text-primary">x2 pts</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-foreground/70">{language === 'es' ? 'Contrarreloj' : 'Timed'}</span>
-                  <span className="font-mono text-primary">+{language === 'es' ? 'Tiempo pts' : 'Time pts'}</span>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-foreground mb-4">Bonificaciones</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <Star className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-foreground font-medium">Racha de victorias</span>
+                      <p className="text-foreground/60 text-sm">+100 pts por cada día consecutivo</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                    <Shield className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-foreground font-medium">Perfecto</span>
+                      <p className="text-foreground/60 text-sm">+500 pts si adivinas al 1er intento</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                    <Info className="w-5 h-5 text-cyan-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-foreground font-medium">Explorador</span>
+                      <p className="text-foreground/60 text-sm">+200 pts por países nuevos descubiertos</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -275,51 +302,53 @@ export default function RulesPage() {
         </div>
 
         {/* Tips */}
-        <div className="mb-16 p-8 rounded-2xl border border-border/40 bg-gradient-to-r from-primary/10 to-primary/5">
-          <h2 className="text-2xl font-bold text-foreground mb-6 text-center">{t('strategies')}</h2>
-          <p className="text-center text-foreground/70 mb-6">{t('strategiesDesc')}</p>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Empieza por países grandes y conocidos para obtener pistas amplias.' : 'Start with large and well-known countries to get broad hints.'}
-              </p>
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+            <Lightbulb className="w-6 h-6 text-primary" />
+            Consejos y Estrategias
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
+              <h3 className="font-semibold text-foreground mb-3 text-green-500">Para Principiantes</h3>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li>• Empieza con países grandes y conocidos</li>
+                <li>• Fíjate en las direcciones cardinales</li>
+                <li>• Usa la distancia como tu principal pista</li>
+                <li>• No temas equivocarte, cada intento ayuda</li>
+              </ul>
             </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-foreground/70 text-sm">
-                {t('strategy1')}
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-foreground/70 text-sm">
-                {t('strategy2')}
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-foreground/70 text-sm">
-                {language === 'es' ? 'Memoriza países pequeños y menos conocidos para sorprender.' : 'Memorize small and less known countries to surprise.'}
-              </p>
+            
+            <div className="p-6 rounded-xl border border-border/40 bg-card/30">
+              <h3 className="font-semibold text-foreground mb-3 text-blue-500">Para Expertos</h3>
+              <ul className="space-y-2 text-foreground/70 text-sm">
+                <li>• Memoriza las distancias entre países clave</li>
+                <li>• Desarrolla un sistema de eliminación</li>
+                <li>• Practica el modo región para dominar áreas</li>
+                <li>• Mantén tu racha diaria para bonus</li>
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="text-center">
-          <Link
-            href="/game"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Globe className="w-5 h-5" />
-            Jugar Ahora
-          </Link>
-          <p className="mt-4 text-foreground/60 text-sm">
-            ¿Listo para poner a prueba tu conocimiento geográfico?
+        {/* CTA */}
+        <div className="text-center p-8 rounded-2xl border border-border/40 bg-gradient-to-r from-primary/10 to-primary/5">
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            ¿Listos para el Desafío?
+          </h2>
+          <p className="text-foreground/70 mb-6 max-w-2xl mx-auto">
+            Ahora que conoces las reglas, es hora de poner a prueba tu conocimiento geográfico. 
+            ¡El mundo te espera!
           </p>
+          <Link href="/game?mode=daily">
+            <Button size="lg" className="px-8 py-4 text-lg font-semibold">
+              Empezar a Jugar
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </Link>
         </div>
       </section>
-    </main>
+      
+      <Footer />
+    </div>
   )
 }

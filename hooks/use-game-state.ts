@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getFallbackGameModeConfig, getGameModeConfig, type GameModeConfig } from '@/lib/services/game-modes'
+import { getProfileIdByUserId } from '@/lib/services/profiles'
 import type { Country, GameMode } from '@/lib/types'
 import { getAllCountries, getCountriesByContinent, searchCountries } from '@/lib/services/countries'
 import { getCountryById } from '@/lib/services/countries'
@@ -42,6 +44,8 @@ export interface GameUiState {
   isLoading: boolean
   error: string | null
   finalScore: number
+  showColorHints: boolean
+  showDirection: boolean
 }
 
 const initialState: GameUiState = {
@@ -61,6 +65,8 @@ const initialState: GameUiState = {
   isLoading: true,
   error: null,
   finalScore: 0,
+  showColorHints: true,
+  showDirection: true,
 }
 
 function dailyStorageKey(): string {
@@ -75,8 +81,16 @@ async function fetchProfileId(): Promise<string | undefined> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return undefined
-  const { data: prof } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle()
-  return prof?.id ? String(prof.id) : undefined
+
+  try {
+    return await getProfileIdByUserId(user.id)
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      const message = error instanceof Error ? error.message : 'No se pudo resolver el perfil'
+      console.log('[fetchProfileId]', message)
+    }
+    return undefined
+  }
 }
 
 export function parseGameModeParam(raw: string | null | undefined): GameMode {
@@ -111,11 +125,16 @@ export function useGameState(options: UseGameStateOptions = {}) {
   }, [state.timeElapsed])
 
   const restoreCompletedSession = useCallback(
-    async (session: import('@/lib/types').GameSessionRow, allCountries: Country[]) => {
+    async (
+      session: import('@/lib/types').GameSessionRow,
+      allCountries: Country[],
+      config: GameModeConfig
+    ) => {
       const target = await getCountryById(session.country_id)
       if (!target) throw new Error('No se encontró el país objetivo.')
       const guesses = await getGuessesForSessionWithCountries(session.id, target)
       const gameStatus: GameStatus = session.won ? 'won' : 'lost'
+      const maxAttempts = config.max_attempts == null ? Number.POSITIVE_INFINITY : config.max_attempts
       setState({
         ...initialState,
         mode: session.game_mode,
@@ -124,13 +143,15 @@ export function useGameState(options: UseGameStateOptions = {}) {
         guesses,
         gameStatus,
         attemptsUsed: session.attempts_used,
-        maxAttempts: session.game_mode === 'infinite' || session.game_mode === 'timed' ? Number.POSITIVE_INFINITY : 6,
+        maxAttempts,
         timeElapsed: session.time_elapsed_sec,
         timeLeftSec: null,
         sessionId: session.id,
         isLoading: false,
         error: null,
         finalScore: session.score,
+        showColorHints: config.show_color_hints,
+        showDirection: config.show_direction,
       })
       onGuessesChange?.(guesses)
     },
@@ -154,6 +175,8 @@ export function useGameState(options: UseGameStateOptions = {}) {
           throw new Error('No hay países en la base de datos.')
         }
         if (signal?.aborted) return
+        const config = await getGameModeConfig(mode).catch(() => getFallbackGameModeConfig(mode))
+        if (signal?.aborted) return
         const profileId = await fetchProfileId()
         if (signal?.aborted) return
 
@@ -162,7 +185,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
             const existing = await getCompletedDailySessionForProfile({ profileId, gameMode: 'daily' })
             if (signal?.aborted) return
             if (existing) {
-              await restoreCompletedSession(existing, list)
+              await restoreCompletedSession(existing, list, config)
               return
             }
           } else if (typeof window !== 'undefined') {
@@ -171,9 +194,9 @@ export function useGameState(options: UseGameStateOptions = {}) {
               const existing = await getSessionById(sid)
               if (signal?.aborted) return
               if (existing?.completed && existing.game_mode === 'daily') {
-                const day = new Date(existing.created_at).toDateString()
+                const day = new Date(existing.played_at).toDateString()
                 if (day === new Date().toDateString()) {
-                  await restoreCompletedSession(existing, list)
+                  await restoreCompletedSession(existing, list, config)
                   return
                 }
               }
@@ -189,11 +212,6 @@ export function useGameState(options: UseGameStateOptions = {}) {
             if (pool.length === 0) pool = list
           }
         }
-        if (mode === 'hard') {
-          const hardPool = list.filter(c => c.difficulty_tier === 'extended')
-          if (hardPool.length > 0) pool = hardPool
-        }
-
         if (signal?.aborted) return
         const target = getDailyCountry(pool, new Date())
         const session = await createGameSession({
@@ -208,7 +226,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
           localStorage.setItem(dailyStorageKey(), session.id)
         }
 
-        const maxAttempts = mode === 'infinite' || mode === 'timed' ? Number.POSITIVE_INFINITY : 6
+        const maxAttempts = config.max_attempts == null ? Number.POSITIVE_INFINITY : config.max_attempts
 
         setState({
           mode,
@@ -219,7 +237,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
           attemptsUsed: 0,
           maxAttempts,
           timeElapsed: 0,
-          timeLeftSec: mode === 'timed' ? 60 : null,
+          timeLeftSec: config.time_limit_sec,
           searchQuery: '',
           searchResults: [],
           selectedIndex: -1,
@@ -227,6 +245,8 @@ export function useGameState(options: UseGameStateOptions = {}) {
           isLoading: false,
           error: null,
           finalScore: 0,
+          showColorHints: config.show_color_hints,
+          showDirection: config.show_direction,
         })
         onGuessesChange?.([])
       } catch (err) {
@@ -388,7 +408,6 @@ export function useGameState(options: UseGameStateOptions = {}) {
   )
 
   const updateSearch = useCallback(async (query: string) => {
-    const mode = stateRef.current.mode
     setState(prev => ({ ...prev, searchQuery: query, selectedIndex: -1 }))
     const q = query.trim()
     if (!q) {
@@ -396,8 +415,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
       return
     }
     try {
-      const tier = mode === 'hard' ? 'extended' : undefined
-      const results = await searchCountries(q, tier)
+      const results = await searchCountries(q)
       setState(prev => ({ ...prev, searchResults: results, selectedIndex: -1 }))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error en la búsqueda'
