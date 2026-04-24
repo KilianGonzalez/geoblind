@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from '@/hooks/use-theme'
 import { useLanguage } from '@/hooks/use-language'
+import { useAuthUser } from '@/hooks/use-auth-user'
 
 interface NavbarProps {
   showModeTabs?: boolean
@@ -34,6 +35,7 @@ export default function Navbar({
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const { t } = useLanguage()
+  const { user, loading: authLoading } = useAuthUser()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const handleLogin = () => {
@@ -65,7 +67,7 @@ export default function Navbar({
             {modes.map((mode) => (
               <Link
                 key={mode.id}
-                href={`/game?mode=${mode.id}`}
+                href={mode.id === 'region' ? '/game?mode=region' : `/game?mode=${mode.id}`}
                 className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 bg-card/50 border border-border/40 hover:bg-card/80"
                 style={{ borderColor: mode.color + '40' }}
               >
@@ -102,15 +104,27 @@ export default function Navbar({
             )}
           </button>
 
-          {/* Login Button - Desktop */}
+          {/* Auth - Desktop */}
           {showLoginButton && (
-            <button 
-              onClick={handleLogin}
-              className="hidden md:flex px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm items-center gap-2"
-            >
-              <User className="w-4 h-4" />
-              {t('signIn')}
-            </button>
+            authLoading ? (
+              <div className="hidden md:block w-10 h-10 rounded-full bg-muted animate-pulse" />
+            ) : user ? (
+              <Link
+                href="/profile"
+                className="hidden md:flex w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 items-center justify-center text-primary-foreground text-sm font-bold transition-transform hover:scale-105"
+                title={user.email ?? 'Perfil'}
+              >
+                {user.email?.slice(0, 2).toUpperCase() ?? 'U'}
+              </Link>
+            ) : (
+              <button 
+                onClick={handleLogin}
+                className="hidden md:flex px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                {t('signIn')}
+              </button>
+            )
           )}
         </div>
       </div>
@@ -125,7 +139,7 @@ export default function Navbar({
                 {modes.map((mode) => (
                   <Link
                     key={mode.id}
-                    href={`/game?mode=${mode.id}`}
+                    href={mode.id === 'region' ? '/game?mode=region' : `/game?mode=${mode.id}`}
                     className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-card/50 bg-card/30 border border-border/40"
                     onClick={() => setShowMobileMenu(false)}
                   >
@@ -135,18 +149,31 @@ export default function Navbar({
               </div>
             )}
             
-            {/* Mobile Login Button */}
+            {/* Mobile Auth */}
             {showLoginButton && (
-              <button 
-                onClick={() => {
-                  handleLogin()
-                  setShowMobileMenu(false)
-                }}
-                className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                {t('signIn')}
-              </button>
+              authLoading ? (
+                <div className="w-full h-10 rounded-lg bg-muted animate-pulse" />
+              ) : user ? (
+                <Link
+                  href="/profile"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  {user.email ?? 'Perfil'}
+                </Link>
+              ) : (
+                <button 
+                  onClick={() => {
+                    handleLogin()
+                    setShowMobileMenu(false)
+                  }}
+                  className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  {t('signIn')}
+                </button>
+              )
             )}
           </div>
         </div>

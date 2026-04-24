@@ -6,7 +6,6 @@ import {
   Globe, 
   Target, 
   Trophy, 
-  Users, 
   Play, 
   ArrowRight,
   Sparkles,
@@ -98,12 +97,12 @@ export default function HomePage() {
           </div>
 
           <div className="text-center p-6 rounded-2xl border border-border/40 bg-card/30 hover:bg-card/50 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/10">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-              <Users className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">Comunidad</h3>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Oráculo IA</h3>
             <p className="text-foreground/60">
-              Únete a jugadores de todo el mundo
+              Consulta pistas estratégicas generadas por Groq durante la partida.
             </p>
           </div>
         </div>
@@ -156,7 +155,7 @@ export default function HomePage() {
               <p className="text-foreground/70 mb-4">
                 Enfócate en continentes específicos para dominar cada región.
               </p>
-              <Link href="/game?mode=region&continent=Europa">
+              <Link href="/game?mode=region">
                 <Button className="w-full hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-300 hover:shadow-md" variant="outline">
                   Jugar Modo Región
                 </Button>

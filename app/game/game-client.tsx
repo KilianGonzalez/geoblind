@@ -11,6 +11,8 @@ import { useLanguage } from '@/hooks/use-language'
 import GuessCard from '@/components/GuessCard'
 import GlobeDynamic from '@/components/globe-dynamic'
 import GameResultModal from '@/components/game-result-modal'
+import GroqOraclePanel from '@/components/groq-oracle-panel'
+import { getAvailableContinents } from '@/lib/continents'
 import { countryToCountryData } from '@/lib/game-logic'
 import type { Country } from '@/lib/types'
 import type { GuessResult } from '@/lib/game-logic'
@@ -75,7 +77,7 @@ function GameNavbar({
             key={m.id}
             type="button"
             onClick={() => {
-              const q = m.id === 'region' ? '?mode=region&continent=Europa' : `?mode=${m.id}`
+              const q = `?mode=${m.id}`
               router.push(`/game${q}`)
             }}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
@@ -130,6 +132,7 @@ function GameNavbar({
 
 function GameInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const modeParam = parseGameModeParam(searchParams.get('mode'))
   const regionContinent = searchParams.get('continent')
 
@@ -214,6 +217,7 @@ function GameInner() {
   const dotCount = Number.isFinite(state.maxAttempts)
     ? state.maxAttempts
     : Math.min(Math.max(state.attemptsUsed + (isPlaying ? 1 : 0), 6), 24)
+  const availableContinents = getAvailableContinents(state.allCountries)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -244,6 +248,38 @@ function GameInner() {
                     {getModeLabels()[state.mode] ?? state.mode} · {t('day')} {dayNum}
                   </span>
                 </div>
+
+                {state.mode === 'region' && state.selectedRegion && (
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold tracking-widest bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 font-mono">
+                      Región activa: {state.selectedRegion}
+                    </span>
+                  </div>
+                )}
+
+                {state.mode === 'region' && availableContinents.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {availableContinents.map(continent => {
+                      const active = state.selectedRegion === continent
+                      return (
+                        <button
+                          key={continent}
+                          type="button"
+                          onClick={() =>
+                            router.push(`/game?mode=region&continent=${encodeURIComponent(continent)}`)
+                          }
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                            active
+                              ? 'bg-emerald-500 text-black'
+                              : 'bg-card border border-border/40 text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {continent}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {state.mode === 'timed' && state.timeLeftSec != null && isPlaying && (
                   <p
@@ -356,6 +392,13 @@ function GameInner() {
                 {state.error && state.targetCountry && (
                   <p className="text-xs text-destructive">{state.error}</p>
                 )}
+
+                <GroqOraclePanel
+                  sessionId={state.sessionId}
+                  isPlaying={isPlaying}
+                  targetCountry={state.targetCountry}
+                  guesses={state.guesses}
+                />
 
                 <div className="flex flex-col gap-2 flex-1" role="list" aria-label="Historial de intentos">
                   {sortedGuesses.length === 0 && (

@@ -5,8 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { getFallbackGameModeConfig, getGameModeConfig, type GameModeConfig } from '@/lib/services/game-modes'
 import { getProfileIdByUserId } from '@/lib/services/profiles'
 import type { Country, GameMode } from '@/lib/types'
-import { getAllCountries, getCountriesByContinent, searchCountries } from '@/lib/services/countries'
+import { getAllCountries } from '@/lib/services/countries'
 import { getCountryById } from '@/lib/services/countries'
+import { countryMatchesContinent, resolveRegionContinent } from '@/lib/continents'
 import {
   createGameSession,
   saveGuess,
@@ -21,7 +22,7 @@ import {
   calculateDirection,
   calculateProximity,
   calculateScore,
-  getDailyCountry,
+  getModeCountry,
   type GuessResult,
 } from '@/lib/game-logic'
 
@@ -46,6 +47,7 @@ export interface GameUiState {
   finalScore: number
   showColorHints: boolean
   showDirection: boolean
+  selectedRegion: string | null
 }
 
 const initialState: GameUiState = {
@@ -67,6 +69,7 @@ const initialState: GameUiState = {
   finalScore: 0,
   showColorHints: true,
   showDirection: true,
+  selectedRegion: null,
 }
 
 function dailyStorageKey(): string {
@@ -152,6 +155,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
         finalScore: session.score,
         showColorHints: config.show_color_hints,
         showDirection: config.show_direction,
+        selectedRegion: null,
       })
       onGuessesChange?.(guesses)
     },
@@ -205,15 +209,24 @@ export function useGameState(options: UseGameStateOptions = {}) {
         }
 
         let pool = list
+        let selectedRegion: string | null = null
         if (mode === 'region') {
-          const cont = regionContinent?.trim()
-          if (cont) {
-            pool = await getCountriesByContinent(cont)
-            if (pool.length === 0) pool = list
+          selectedRegion = resolveRegionContinent(list, regionContinent)
+          if (selectedRegion) {
+            pool = list.filter(country => countryMatchesContinent(country, selectedRegion!))
+          }
+          if (pool.length === 0) {
+            pool = list
+            selectedRegion = null
           }
         }
         if (signal?.aborted) return
-        const target = getDailyCountry(pool, new Date())
+        const target = getModeCountry({
+          countries: pool,
+          mode,
+          date: new Date(),
+          regionKey: selectedRegion,
+        })
         const session = await createGameSession({
           gameMode: mode,
           countryId: target.id,
@@ -247,6 +260,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
           finalScore: 0,
           showColorHints: config.show_color_hints,
           showDirection: config.show_direction,
+          selectedRegion,
         })
         onGuessesChange?.([])
       } catch (err) {
@@ -320,6 +334,17 @@ export function useGameState(options: UseGameStateOptions = {}) {
       const snap = stateRef.current
       if (snap.gameStatus !== 'playing' || !snap.targetCountry || !snap.sessionId) return
       if (snap.guesses.some(g => g.country.id === country.id)) return
+      if (
+        snap.mode === 'region' &&
+        snap.selectedRegion &&
+        !countryMatchesContinent(country, snap.selectedRegion)
+      ) {
+        setState(prev => ({
+          ...prev,
+          error: `En modo región solo puedes probar países de ${snap.selectedRegion}.`,
+        }))
+        return
+      }
 
       const attemptNumber = snap.attemptsUsed + 1
       
@@ -414,16 +439,19 @@ export function useGameState(options: UseGameStateOptions = {}) {
       setState(prev => ({ ...prev, searchResults: [] }))
       return
     }
-    try {
-      const results = await searchCountries(q)
-      setState(prev => ({ ...prev, searchResults: results, selectedIndex: -1 }))
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error en la búsqueda'
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[updateSearch]', message)
-      }
-      setState(prev => ({ ...prev, error: message, searchResults: [] }))
-    }
+
+    const snap = stateRef.current
+    const results = snap.allCountries
+      .filter(country => {
+        if (snap.mode === 'region' && snap.selectedRegion) {
+          return countryMatchesContinent(country, snap.selectedRegion)
+        }
+        return true
+      })
+      .filter(country => country.name.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 8)
+
+    setState(prev => ({ ...prev, searchResults: results, selectedIndex: -1 }))
   }, [])
 
   const navigateResults = useCallback((direction: 'up' | 'down') => {

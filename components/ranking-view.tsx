@@ -105,7 +105,7 @@ export default function RankingView({
           {MODES.map(m => (
             <Link
               key={m.id}
-              href={m.id === 'region' ? '/game?mode=region&continent=Europa' : `/game?mode=${m.id}`}
+              href={m.id === 'region' ? '/game?mode=region' : `/game?mode=${m.id}`}
               style={{
                 padding: '5px 14px',
                 borderRadius: 999,

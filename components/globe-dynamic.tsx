@@ -10,7 +10,7 @@ const Globe3D = dynamic(() => import('./globe-3d'), {
       style={{
         position: 'absolute',
         inset: 0,
-        background: '#0A0E1A',
+        background: '#000000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -22,12 +22,12 @@ const Globe3D = dynamic(() => import('./globe-3d'), {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            border: '2px solid rgba(0,212,255,0.3)',
-            borderTopColor: '#00D4FF',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderTopColor: '#FFFFFF',
             animation: 'spin 1s linear infinite',
           }}
         />
-        <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#8BA4B0', fontSize: 14 }}>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.72)', fontSize: 14 }}>
           Cargando globo...
         </span>
       </div>

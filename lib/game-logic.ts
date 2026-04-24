@@ -4,7 +4,7 @@ const EARTH_RADIUS_KM = 6371
 
 export type CountryData = Pick<
   Country,
-  'id' | 'name' | 'flag_emoji' | 'continent' | 'lat' | 'lng'
+  'id' | 'name' | 'iso_code' | 'flag_emoji' | 'continent' | 'lat' | 'lng'
 >
 
 const DIRECTION_LABELS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'] as const
@@ -83,20 +83,84 @@ export function calculateScore(attemptsUsed: number, timeElapsedSec: number, won
   return Math.max(0, baseScore - attemptPenalty - timePenalty)
 }
 
-export function getDailyCountry(countries: Country[], date: Date): Country {
-  if (countries.length === 0) {
-    throw new Error('getDailyCountry: countries array is empty')
+function hashSeed(value: string): number {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
   }
-  const seed =
-    date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()
-  const index = seed % countries.length
-  return countries[index]
+  return hash >>> 0
+}
+
+function getRankedCountry(countries: Country[], seedKey: string, rank: number): Country {
+  if (countries.length === 0) {
+    throw new Error('getRankedCountry: countries array is empty')
+  }
+
+  const ranked = [...countries].sort((left, right) => {
+    const leftHash = hashSeed(`${seedKey}:${left.id}`)
+    const rightHash = hashSeed(`${seedKey}:${right.id}`)
+    return leftHash - rightHash
+  })
+
+  return ranked[rank % ranked.length]
+}
+
+export function pickRandomCountry(
+  countries: Country[],
+  excludedCountryIds: string[] = []
+): Country {
+  if (countries.length === 0) {
+    throw new Error('pickRandomCountry: countries array is empty')
+  }
+
+  const excluded = new Set(excludedCountryIds)
+  const filtered = countries.filter(country => !excluded.has(country.id))
+  const pool = filtered.length > 0 ? filtered : countries
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+export function getDailyCountry(countries: Country[], date: Date): Country {
+  const seedKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  return getRankedCountry(countries, seedKey, 0)
+}
+
+export function getModeCountry(params: {
+  countries: Country[]
+  mode: 'daily' | 'infinite' | 'region' | 'timed' | 'hard'
+  date: Date
+  regionKey?: string | null
+}): Country {
+  const { countries, mode, date, regionKey } = params
+  const daySeed = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+
+  if (mode === 'region') {
+    return getRankedCountry(countries, `region:${regionKey ?? 'default'}:${daySeed}`, 0)
+  }
+
+  if (mode === 'infinite') {
+    const reserved = [
+      getRankedCountry(countries, daySeed, 0).id,
+      getRankedCountry(countries, daySeed, 1).id,
+      getRankedCountry(countries, daySeed, 2).id,
+    ]
+    return pickRandomCountry(countries, reserved)
+  }
+
+  const rankByMode = {
+    daily: 0,
+    timed: 1,
+    hard: 2,
+  } as const
+
+  return getRankedCountry(countries, daySeed, rankByMode[mode])
 }
 
 export function countryToCountryData(c: Country): CountryData {
   return {
     id: c.id,
     name: c.name,
+    iso_code: c.iso_code,
     flag_emoji: c.flag_emoji,
     continent: c.continent,
     lat: c.lat,
