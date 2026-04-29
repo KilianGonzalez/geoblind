@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Globe, Search, Flag, Sun, Moon } from 'lucide-react'
+import { Search, Flag, Sun, Moon } from 'lucide-react'
 import { useGameState, parseGameModeParam } from '@/hooks/use-game-state'
 import { useAuthUser } from '@/hooks/use-auth-user'
 import { useTheme } from '@/hooks/use-theme'
 import { useLanguage } from '@/hooks/use-language'
+import BrandLogo from '@/components/brand-logo'
 import GuessCard from '@/components/GuessCard'
 import GlobeDynamic from '@/components/globe-dynamic'
 import GameResultModal from '@/components/game-result-modal'
 import GroqOraclePanel from '@/components/groq-oracle-panel'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAvailableContinents } from '@/lib/continents'
 import { countryToCountryData } from '@/lib/game-logic'
 import type { Country } from '@/lib/types'
@@ -66,10 +68,7 @@ function GameNavbar({
 
   return (
     <header className="flex items-center justify-between flex-shrink-0 px-5 h-14 border-b border-border/40 bg-card/95 backdrop-blur-md sticky top-0 z-50">
-      <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-        <Globe className="w-6 h-6 text-primary" />
-        <span className="font-bold text-base text-foreground">GeoBlind</span>
-      </Link>
+      <BrandLogo href="/" size={26} className="text-foreground hover:text-primary transition-colors" />
 
       <nav className="hidden md:flex items-center gap-1" aria-label="Modos de juego">
         {MODE_TABS.map(m => (
@@ -147,6 +146,7 @@ function GameInner() {
   const [showConfirmGiveUp, setShowConfirmGiveUp] = useState(false)
   const [flashAttempt, setFlashAttempt] = useState<number | null>(null)
   const [modalDismissed, setModalDismissed] = useState(false)
+  const [interactionTab, setInteractionTab] = useState('guess')
   useEffect(() => {
     const ac = new AbortController()
     void initGame(modeParam, regionContinent, { signal: ac.signal })
@@ -218,6 +218,13 @@ function GameInner() {
     ? state.maxAttempts
     : Math.min(Math.max(state.attemptsUsed + (isPlaying ? 1 : 0), 6), 24)
   const availableContinents = getAvailableContinents(state.allCountries)
+  const activeInputCountry =
+    (state.selectedIndex >= 0 ? state.searchResults[state.selectedIndex] : undefined) ??
+    (state.searchQuery.trim()
+      ? state.allCountries.find(
+          c => c.name.toLowerCase() === state.searchQuery.trim().toLowerCase()
+        )
+      : undefined)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -327,16 +334,32 @@ function GameInner() {
                   </div>
                 </div>
 
-                <div className="relative" role="search">
+                <Tabs value={interactionTab} onValueChange={setInteractionTab} className="gap-3">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="guess">Respuestas</TabsTrigger>
+                    <TabsTrigger value="oracle">Pistas IA</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="guess" className="space-y-2">
+                    <div className="relative" role="search">
                   <label htmlFor="country-search" className="sr-only">
                     ¿Cuál es el país misterioso?
                   </label>
                   <div className="relative flex items-center">
-                    <Search
-                      className="absolute left-4 w-5 h-5 pointer-events-none"
-                      style={{ color: '#00D4FF' }}
-                      aria-hidden="true"
-                    />
+                    {activeInputCountry ? (
+                      <span
+                        className="absolute left-4 text-xl leading-none pointer-events-none"
+                        aria-label={`Bandera de ${activeInputCountry.name}`}
+                      >
+                        {activeInputCountry.flag_emoji}
+                      </span>
+                    ) : (
+                      <Search
+                        className="absolute left-4 w-5 h-5 pointer-events-none"
+                        style={{ color: '#00D4FF' }}
+                        aria-hidden="true"
+                      />
+                    )}
                     <input
                       id="country-search"
                       ref={inputRef}
@@ -349,6 +372,11 @@ function GameInner() {
                       onKeyDown={handleKeyDown}
                       className="w-full pl-12 pr-10 h-13 text-foreground placeholder-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none bg-background border rounded-xl text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                     />
+                    {activeInputCountry && (
+                      <span className="absolute right-10 text-[10px] px-2 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary font-mono pointer-events-none">
+                        {activeInputCountry.continent}
+                      </span>
+                    )}
                     <span
                       className="absolute right-4 text-xs text-muted-foreground pointer-events-none select-none font-mono"
                       aria-hidden="true"
@@ -387,18 +415,22 @@ function GameInner() {
                       ))}
                     </div>
                   )}
-                </div>
+                    </div>
 
-                {state.error && state.targetCountry && (
-                  <p className="text-xs text-destructive">{state.error}</p>
-                )}
+                    {state.error && state.targetCountry && (
+                      <p className="text-xs text-destructive">{state.error}</p>
+                    )}
+                  </TabsContent>
 
-                <GroqOraclePanel
-                  sessionId={state.sessionId}
-                  isPlaying={isPlaying}
-                  targetCountry={state.targetCountry}
-                  guesses={state.guesses}
-                />
+                  <TabsContent value="oracle">
+                    <GroqOraclePanel
+                      sessionId={state.sessionId}
+                      isPlaying={isPlaying}
+                      targetCountry={state.targetCountry}
+                      guesses={state.guesses}
+                    />
+                  </TabsContent>
+                </Tabs>
 
                 <div className="flex flex-col gap-2 flex-1" role="list" aria-label="Historial de intentos">
                   {sortedGuesses.length === 0 && (

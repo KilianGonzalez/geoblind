@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   User,
   Bell,
-  Globe,
   Volume2,
   Moon,
   Sun,
@@ -27,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import BrandLogo from '@/components/brand-logo'
 
 interface UserSettings {
   username: string
@@ -98,11 +98,20 @@ export default function SettingsPage() {
       }
 
       setUser(user)
-      
-      // Load user settings (simulated for now)
+
+      const { data: profileRow, error: profileError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profileError) {
+        throw new Error(profileError.message)
+      }
+
       setSettings(prev => ({
         ...prev,
-        username: user.user_metadata?.username || 'Jugador',
+        username: profileRow?.username || user.user_metadata?.username || user.email?.split('@')[0] || '',
         email: user.email || ''
       }))
     } catch (error) {
@@ -115,18 +124,19 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     setSaving(true)
     try {
-      // Simulate saving settings
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Update user metadata
       if (user) {
-        await supabase.auth.updateUser({
+        const { error: authError } = await supabase.auth.updateUser({
           data: { username: settings.username }
         })
+        if (authError) throw new Error(authError.message)
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ username: settings.username })
+          .eq('id', user.id)
+
+        if (profileError) throw new Error(profileError.message)
       }
-      
-      // Show success message (you could use a toast here)
-      console.log('Settings saved successfully')
     } catch (error) {
       console.error('Error saving settings:', error)
     } finally {
@@ -188,10 +198,7 @@ export default function SettingsPage() {
             <span>Volver</span>
           </Link>
           
-          <div className="flex items-center gap-2">
-            <Globe className="w-8 h-8 text-primary" />
-            <span className="font-bold text-xl text-foreground">GeoBlind</span>
-          </div>
+          <BrandLogo size={32} />
 
           <Button 
             onClick={handleSaveSettings}

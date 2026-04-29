@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { 
-  Globe, 
   Moon, 
   Sun, 
   User,
   Menu,
   X
 } from 'lucide-react'
+import BrandLogo from '@/components/brand-logo'
 import { useTheme } from '@/hooks/use-theme'
 import { useLanguage } from '@/hooks/use-language'
 import { useAuthUser } from '@/hooks/use-auth-user'
@@ -43,7 +43,7 @@ export default function Navbar({
   }
 
   return (
-    <header className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/75 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-8">
         <div className="flex items-center gap-2">
           {showBackButton && (
@@ -55,10 +55,7 @@ export default function Navbar({
               {t('back')}
             </Link>
           )}
-          <Link href="/" className="flex items-center gap-2">
-            <Globe className="w-8 h-8 text-primary" />
-            <span className="font-bold text-xl text-foreground">GeoBlind</span>
-          </Link>
+          <BrandLogo href="/" size={36} />
         </div>
 
         {/* Mode Tabs - Center */}
@@ -68,7 +65,7 @@ export default function Navbar({
               <Link
                 key={mode.id}
                 href={mode.id === 'region' ? '/game?mode=region' : `/game?mode=${mode.id}`}
-                className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 bg-card/50 border border-border/40 hover:bg-card/80"
+                className="px-4 py-2 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 bg-card/60 border border-border/40 hover:bg-card"
                 style={{ borderColor: mode.color + '40' }}
               >
                 {t(mode.translationKey)}
@@ -131,7 +128,7 @@ export default function Navbar({
 
       {/* Mobile Menu */}
       {showMobileMenu && (
-        <div className="md:hidden border-t border-border/40">
+        <div className="md:hidden border-t border-border/40 reveal-up" style={{ ['--delay' as string]: '20ms' }}>
           <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
             {/* Mobile Mode Tabs */}
             {showModeTabs && (
@@ -140,7 +137,7 @@ export default function Navbar({
                   <Link
                     key={mode.id}
                     href={mode.id === 'region' ? '/game?mode=region' : `/game?mode=${mode.id}`}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-card/50 bg-card/30 border border-border/40"
+                    className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-card/50 bg-card/30 border border-border/40"
                     onClick={() => setShowMobileMenu(false)}
                   >
                     {t(mode.translationKey)}
@@ -157,7 +154,7 @@ export default function Navbar({
                 <Link
                   href="/profile"
                   onClick={() => setShowMobileMenu(false)}
-                  className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
                 >
                   <User className="w-4 h-4" />
                   {user.email ?? 'Perfil'}
@@ -168,7 +165,7 @@ export default function Navbar({
                     handleLogin()
                     setShowMobileMenu(false)
                   }}
-                  className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
                 >
                   <User className="w-4 h-4" />
                   {t('signIn')}

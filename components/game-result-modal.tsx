@@ -1,21 +1,20 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Globe2, Trophy } from 'lucide-react'
+import { Globe2, Trophy, X } from 'lucide-react'
 import type { GameStatus } from '@/hooks/use-game-state'
-import type { GuessResult, CountryData } from '@/lib/game-logic'
+import type { CountryData, GuessResult } from '@/lib/game-logic'
 import { useLanguage } from '@/hooks/use-language'
 
 const MONO = 'JetBrains Mono, monospace'
 const HEADING = 'Space Grotesk, Inter, sans-serif'
 
-// Proximity circle color for shareable result
 function circleColor(pct: number): string {
   if (pct >= 100) return '#4CAF50'
-  if (pct >= 81)  return '#FF6B35'
-  if (pct >= 51)  return '#C9A84C'
-  if (pct >= 21)  return '#2D6A4F'
+  if (pct >= 81) return '#FF6B35'
+  if (pct >= 51) return '#C9A84C'
+  if (pct >= 21) return '#2D6A4F'
   return '#1B3A4B'
 }
 
@@ -72,7 +71,10 @@ export default function GameResultModal({
   const { language } = useLanguage()
   const countdown = useCountdown()
   const [copied, setCopied] = useState(false)
+  const [countryFact, setCountryFact] = useState('')
+  const [countryFactLoading, setCountryFactLoading] = useState(false)
 
+  const won = status === 'won'
   const attemptsLabel =
     Number.isFinite(maxAttemptsDisplay) && maxAttemptsDisplay > 0 && maxAttemptsDisplay !== Number.POSITIVE_INFINITY
       ? `${attemptsUsed}/${maxAttemptsDisplay}`
@@ -80,17 +82,23 @@ export default function GameResultModal({
 
   const shareText = [
     `GeoBlind #${dailyDayNumber} 🌍`,
-    guesses.map(g => {
-      const color = circleColor(g.proximityPct)
-      if (color === '#4CAF50') return '🟢'
-      if (color === '#FF6B35') return '🟠'
-      if (color === '#C9A84C') return '🟡'
-      if (color === '#2D6A4F') return '🟤'
-      return '🔵'
-    }).join(''),
-    status === 'won' 
-      ? (language === 'es' ? `Lo conseguí en ${attemptsLabel}` : `Got it in ${attemptsLabel}`)
-      : (language === 'es' ? `No lo conseguí hoy` : `Didn't get it today`),
+    guesses
+      .map(g => {
+        const color = circleColor(g.proximityPct)
+        if (color === '#4CAF50') return '🟢'
+        if (color === '#FF6B35') return '🟠'
+        if (color === '#C9A84C') return '🟡'
+        if (color === '#2D6A4F') return '🟤'
+        return '🔵'
+      })
+      .join(''),
+    won
+      ? language === 'es'
+        ? `Lo consegui en ${attemptsLabel}`
+        : `Got it in ${attemptsLabel}`
+      : language === 'es'
+        ? 'No lo consegui hoy'
+        : "Didn't get it today",
     language === 'es' ? 'Juega en geoblind.com' : 'Play at geoblind.com',
   ].join('\n')
 
@@ -100,37 +108,73 @@ export default function GameResultModal({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // fallback: do nothing
+      // no-op
     }
   }, [shareText])
 
-  // Escape key closes modal
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const fallbackFact =
+      language === 'es'
+        ? `${target.name} destaca por su diversidad geografica y su influencia regional.`
+        : `${target.name} stands out for its geographic diversity and regional influence.`
+
+    const ac = new AbortController()
+
+    async function loadCountryFact(): Promise<void> {
+      setCountryFactLoading(true)
+      try {
+        const response = await fetch('/api/groq/country-fact', {
+          method: 'POST',
+          signal: ac.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            countryName: target.name,
+            continent: target.continent,
+            language,
+            nonce: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          }),
+        })
+
+        const data = (await response.json()) as { fact?: string }
+        if (!response.ok || !data.fact) {
+          throw new Error('country-fact-error')
+        }
+
+        setCountryFact(data.fact)
+      } catch {
+        setCountryFact(fallbackFact)
+      } finally {
+        setCountryFactLoading(false)
+      }
+    }
+
+    void loadCountryFact()
+    return () => ac.abort()
+  }, [target.name, target.continent, language, status])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Prevent body scroll while open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [])
-
-  const won = status === 'won'
-
-  const stats = {
-    score: won ? finalScore : 0,
-    streak: '—',
-    time: formatTime(timeElapsedSec),
-  }
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={won ? (language === 'es' ? 'Resultado: ganaste' : 'Result: you won') : (language === 'es' ? 'Resultado: perdiste' : 'Result: you lost')}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose()
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -141,7 +185,6 @@ export default function GameResultModal({
         padding: '1rem',
         background: 'rgba(0, 0, 0, 0.85)',
         backdropFilter: 'blur(8px)',
-        animation: 'fadeIn 200ms ease',
       }}
     >
       <div
@@ -151,15 +194,11 @@ export default function GameResultModal({
           background: '#0D1B2A',
           borderRadius: 20,
           border: '1px solid rgba(0, 212, 255, 0.2)',
-          boxShadow: won
-            ? '0 0 60px rgba(76, 175, 80, 0.15)'
-            : '0 0 60px rgba(244, 67, 54, 0.15)',
-          animation: 'modalEnter 300ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          boxShadow: won ? '0 0 60px rgba(76, 175, 80, 0.15)' : '0 0 60px rgba(244, 67, 54, 0.15)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           aria-label={language === 'es' ? 'Cerrar' : 'Close'}
@@ -185,7 +224,6 @@ export default function GameResultModal({
         </button>
 
         <div style={{ padding: '32px 32px 28px' }}>
-          {/* Icon */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
             <div
               style={{
@@ -197,158 +235,135 @@ export default function GameResultModal({
                 justifyContent: 'center',
                 background: won ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)',
                 border: `2px solid ${won ? 'rgba(76,175,80,0.4)' : 'rgba(244,67,54,0.4)'}`,
-                animation: 'iconPulse 2s ease-in-out infinite',
               }}
             >
-              {won
-                ? <Globe2 size={36} color="#4CAF50" />
-                : <Trophy size={36} color="#F44336" />}
+              {won ? <Globe2 size={36} color="#4CAF50" /> : <Trophy size={36} color="#F44336" />}
             </div>
           </div>
 
-          {/* Titles */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <h2 style={{
-              fontFamily: HEADING,
-              fontSize: 32,
-              fontWeight: 700,
-              color: '#E8F4F8',
-              margin: 0,
-              lineHeight: 1.2,
-            }}>
-              {won ? (language === 'es' ? '¡Lo conseguiste!' : 'You got it!') : (language === 'es' ? '¡Casi lo tienes!' : 'So close!')}
+            <h2 style={{ fontFamily: HEADING, fontSize: 32, fontWeight: 700, color: '#E8F4F8', margin: 0, lineHeight: 1.2 }}>
+              {won ? (language === 'es' ? 'Lo conseguiste!' : 'You got it!') : (language === 'es' ? 'Casi lo tienes!' : 'So close!')}
             </h2>
             <p style={{ color: '#8BA4B0', fontSize: 15, marginTop: 6 }}>
-              {won ? (language === 'es' ? 'Encontraste el país misterioso' : 'You found the mystery country') : (language === 'es' ? 'El país misterioso era...' : 'The mystery country was...')}
+              {won
+                ? language === 'es'
+                  ? 'Encontraste el pais misterioso'
+                  : 'You found the mystery country'
+                : language === 'es'
+                  ? 'El pais misterioso era...'
+                  : 'The mystery country was...'}
             </p>
           </div>
 
-          {/* Country reveal */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            padding: '16px 20px',
-            background: 'rgba(0, 212, 255, 0.06)',
-            border: '1px solid rgba(0, 212, 255, 0.2)',
-            borderRadius: 14,
-            marginBottom: 20,
-          }}>
-            <span style={{ fontSize: 40, lineHeight: 1 }} aria-hidden="true">{target.flag_emoji}</span>
-            <span style={{
-              fontFamily: HEADING,
-              fontSize: 26,
-              fontWeight: 700,
-              color: '#00D4FF',
-            }}>
-              {target.name}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              padding: '16px 20px',
+              background: 'rgba(0, 212, 255, 0.06)',
+              border: '1px solid rgba(0, 212, 255, 0.2)',
+              borderRadius: 14,
+              marginBottom: 20,
+            }}
+          >
+            <span style={{ fontSize: 40, lineHeight: 1 }} aria-hidden="true">
+              {target.flag_emoji}
             </span>
+            <span style={{ fontFamily: HEADING, fontSize: 26, fontWeight: 700, color: '#00D4FF' }}>{target.name}</span>
           </div>
 
-          {/* Lost: fun fact */}
-          {!won && (
-            <div style={{
+          <div
+            style={{
               padding: '14px 16px',
-              background: 'rgba(201, 168, 76, 0.08)',
-              border: '1px solid rgba(201, 168, 76, 0.3)',
+              background: won ? 'rgba(76, 175, 80, 0.08)' : 'rgba(201, 168, 76, 0.08)',
+              border: won ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid rgba(201, 168, 76, 0.3)',
               borderRadius: 12,
               marginBottom: 20,
               display: 'flex',
               gap: 10,
               alignItems: 'flex-start',
-            }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">💡</span>
-              <p style={{
-                fontSize: 13,
-                color: '#C9A84C',
-                fontStyle: 'italic',
-                margin: 0,
-                lineHeight: 1.5,
-              }}>
-                {language === 'es' 
-                  ? `${target.name} es conocida por su rica historia, diversidad cultural y su posición estratégica en el mapa mundial.`
-                  : `${target.name} is known for its rich history, cultural diversity and strategic position on the world map.`
-                }
+            }}
+          >
+            <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">
+              💡
+            </span>
+            <div style={{ margin: 0 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  margin: '0 0 4px 0',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: won ? '#7EDC9D' : '#D3B66A',
+                  fontFamily: MONO,
+                }}
+              >
+                {language === 'es' ? 'Dato IA del pais' : 'AI country fact'}
+              </p>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: won ? '#BFEFD1' : '#C9A84C',
+                  fontStyle: 'italic',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                {countryFactLoading
+                  ? language === 'es'
+                    ? 'Generando dato interesante...'
+                    : 'Generating interesting fact...'
+                  : countryFact}
               </p>
             </div>
-          )}
+          </div>
 
-          {/* Stats grid (won only) */}
           {won && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 10,
-              marginBottom: 20,
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
               {[
                 { label: language === 'es' ? 'Intentos' : 'Attempts', value: attemptsLabel },
-                { label: language === 'es' ? 'Tiempo' : 'Time', value: stats.time },
-                { label: language === 'es' ? 'Puntuación' : 'Score', value: stats.score.toLocaleString() },
-                { label: language === 'es' ? 'Racha' : 'Streak', value: stats.streak },
+                { label: language === 'es' ? 'Tiempo' : 'Time', value: formatTime(timeElapsedSec) },
+                { label: language === 'es' ? 'Puntuacion' : 'Score', value: finalScore.toLocaleString() },
+                { label: language === 'es' ? 'Racha' : 'Streak', value: '—' },
               ].map(stat => (
-                <div key={stat.label} style={{
-                  background: 'rgba(27, 58, 75, 0.5)',
-                  border: '1px solid rgba(0, 212, 255, 0.1)',
-                  borderRadius: 12,
-                  padding: 16,
-                  textAlign: 'center',
-                }}>
+                <div
+                  key={stat.label}
+                  style={{
+                    background: 'rgba(27, 58, 75, 0.5)',
+                    border: '1px solid rgba(0, 212, 255, 0.1)',
+                    borderRadius: 12,
+                    padding: 16,
+                    textAlign: 'center',
+                  }}
+                >
                   <p style={{ color: '#8BA4B0', fontSize: 12, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {stat.label}
                   </p>
-                  <p style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: '#00D4FF', margin: 0 }}>
-                    {stat.value}
-                  </p>
+                  <p style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: '#00D4FF', margin: 0 }}>{stat.value}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Shareable result */}
-          <div style={{
-            background: 'rgba(27, 58, 75, 0.4)',
-            border: '1px solid rgba(27, 58, 75, 0.8)',
-            borderRadius: 12,
-            padding: '16px',
-            marginBottom: 20,
-          }}>
-            <p style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: '#E8F4F8', margin: '0 0 8px' }}>
-              GeoBlind #{dailyDayNumber} 🌍
-            </p>
+          <div
+            style={{
+              background: 'rgba(27, 58, 75, 0.4)',
+              border: '1px solid rgba(27, 58, 75, 0.8)',
+              borderRadius: 12,
+              padding: '16px',
+              marginBottom: 20,
+            }}
+          >
+            <p style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: '#E8F4F8', margin: '0 0 8px' }}>GeoBlind #{dailyDayNumber} 🌍</p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }} aria-label="Resultados de intentos">
               {guesses.map((g, i) => (
                 <div
                   key={i}
                   title={`Intento ${i + 1}: ${g.proximityPct}% de proximidad`}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: circleColor(g.proximityPct),
-                    flexShrink: 0,
-                  }}
-                />
-              ))}
-              {Array.from({
-                length: Math.max(
-                  0,
-                  (Number.isFinite(maxAttemptsDisplay) && maxAttemptsDisplay !== Number.POSITIVE_INFINITY
-                    ? maxAttemptsDisplay
-                    : 6) - guesses.length
-                ),
-              }).map((_, i) => (
-                <div
-                  key={`empty-${i}`}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: 'transparent',
-                    border: '2px solid rgba(27,58,75,0.8)',
-                    flexShrink: 0,
-                  }}
+                  style={{ width: 20, height: 20, borderRadius: '50%', background: circleColor(g.proximityPct), flexShrink: 0 }}
                 />
               ))}
             </div>
@@ -368,11 +383,10 @@ export default function GameResultModal({
                 transition: 'all 200ms',
               }}
             >
-              {copied ? '¡Copiado!' : 'Copiar resultado'}
+              {copied ? 'Copiado!' : 'Copiar resultado'}
             </button>
           </div>
 
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
             <button
               onClick={() => router.push('/game?mode=infinite')}
@@ -387,7 +401,6 @@ export default function GameResultModal({
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'opacity 150ms',
               }}
               className="hover:opacity-90"
             >
@@ -406,7 +419,6 @@ export default function GameResultModal({
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'background 150ms',
               }}
               className="hover:bg-primary/10"
             >
@@ -414,31 +426,11 @@ export default function GameResultModal({
             </button>
           </div>
 
-          {/* Countdown */}
           <p style={{ textAlign: 'center', color: '#8BA4B0', fontSize: 13, margin: 0 }}>
-            Próximo reto en:{' '}
-            <span style={{ fontFamily: MONO, color: '#E8F4F8' }}>{countdown}</span>
+            Proximo reto en: <span style={{ fontFamily: MONO, color: '#E8F4F8' }}>{countdown}</span>
           </p>
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes modalEnter {
-          from { opacity: 0; transform: scale(0.9); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes iconPulse {
-          0%, 100% { box-shadow: 0 0 0 0 ${won ? 'rgba(76,175,80,0.3)' : 'rgba(244,67,54,0.3)'}; }
-          50%       { box-shadow: 0 0 0 12px transparent; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          * { animation: none !important; transition: none !important; }
-        }
-      `}</style>
     </div>
   )
 }
