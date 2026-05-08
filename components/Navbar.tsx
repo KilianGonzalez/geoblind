@@ -35,12 +35,19 @@ export default function Navbar({
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const { t } = useLanguage()
-  const { user, loading: authLoading } = useAuthUser()
+  const { user, profileUsername, loading: authLoading } = useAuthUser()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const handleLogin = () => {
     router.push('/auth')
   }
+
+  const profileName =
+    String(profileUsername ?? '').trim() ||
+    String(user?.user_metadata?.username ?? '').trim() ||
+    String(user?.email ?? '').split('@')[0] ||
+    'Usuario'
+  const profileInitials = profileName.slice(0, 2).toUpperCase()
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/75 backdrop-blur-xl">
@@ -109,9 +116,9 @@ export default function Navbar({
               <Link
                 href="/profile"
                 className="hidden md:flex w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 items-center justify-center text-primary-foreground text-sm font-bold transition-transform hover:scale-105"
-                title={user.email ?? 'Perfil'}
+                title={profileName}
               >
-                {user.email?.slice(0, 2).toUpperCase() ?? 'U'}
+                {profileInitials}
               </Link>
             ) : (
               <button 
@@ -157,7 +164,7 @@ export default function Navbar({
                   className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-card/50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
                 >
                   <User className="w-4 h-4" />
-                  {user.email ?? 'Perfil'}
+                  {profileName}
                 </Link>
               ) : (
                 <button 

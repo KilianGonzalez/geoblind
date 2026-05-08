@@ -48,10 +48,12 @@ function guessSortDesc(a: GuessResult, b: GuessResult): number {
 function GameNavbar({
   activeMode,
   user,
+  profileUsername,
   authLoading,
 }: {
   activeMode: string
   user: ReturnType<typeof useAuthUser>['user']
+  profileUsername: ReturnType<typeof useAuthUser>['profileUsername']
   authLoading: boolean
 }) {
   const router = useRouter()
@@ -65,6 +67,12 @@ function GameNavbar({
     timed: t('timed'),
     hard: t('hard')
   }
+  const profileName =
+    String(profileUsername ?? '').trim() ||
+    String(user?.user_metadata?.username ?? '').trim() ||
+    String(user?.email ?? '').split('@')[0] ||
+    'Usuario'
+  const profileInitials = profileName.slice(0, 2).toUpperCase()
 
   return (
     <header className="flex items-center justify-between flex-shrink-0 px-5 h-14 border-b border-border/40 bg-card/95 backdrop-blur-md sticky top-0 z-50">
@@ -113,8 +121,11 @@ function GameNavbar({
         {authLoading ? (
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
         ) : user ? (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-xs font-bold">
-            {user.email?.slice(0, 2).toUpperCase()}
+          <div
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-xs font-bold"
+            title={profileName}
+          >
+            {profileInitials}
           </div>
         ) : (
           <Link
@@ -136,7 +147,7 @@ function GameInner() {
   const regionContinent = searchParams.get('continent')
 
   const [globeGuesses, setGlobeGuesses] = useState<GuessResult[]>([])
-  const { user, loading: authLoading } = useAuthUser()
+  const { user, profileUsername, loading: authLoading } = useAuthUser()
   const { language, t } = useLanguage()
   const { state, initGame, submitGuess, updateSearch, navigateResults, clearSearch, giveUp } = useGameState({
     onGuessesChange: setGlobeGuesses,
@@ -228,7 +239,7 @@ function GameInner() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <GameNavbar activeMode={modeParam} user={user} authLoading={authLoading} />
+      <GameNavbar activeMode={modeParam} user={user} profileUsername={profileUsername} authLoading={authLoading} />
 
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         <div
