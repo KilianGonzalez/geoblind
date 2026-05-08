@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'GeoBlind - juego de geografia diario',
     description: 'Un reto de geografia nuevo cada dia',
-    url: 'https://geoblind.com',
+    url: 'https://geoblind.vercel.app',
     type: 'website',
   },
   icons: {

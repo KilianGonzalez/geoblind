@@ -99,7 +99,7 @@ export default function GameResultModal({
       : language === 'es'
         ? 'No lo consegui hoy'
         : "Didn't get it today",
-    language === 'es' ? 'Juega en geoblind.com' : 'Play at geoblind.com',
+    language === 'es' ? 'Juega en geoblind.vercel.app' : 'Play at geoblind.vercel.app',
   ].join('\n')
 
   const handleCopy = useCallback(async () => {
